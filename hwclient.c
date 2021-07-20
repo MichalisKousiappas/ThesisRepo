@@ -1,4 +1,3 @@
-//  Hello World client
 #include <assert.h>
 #include <zmq.h>
 #include <string.h>

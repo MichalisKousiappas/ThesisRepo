@@ -1,5 +1,10 @@
-//  Reading from multiple sockets
-//  This version uses zmq_poll()
+/**
+ * Reading from multiple sockets
+ * This version uses zmq_poll()
+ * The approach with poll will not work,
+ * since myServerIP will send the msg twice to the first who connects thus the 3rd will starve.
+ * I tried with PUB-SUB but i couldn't get it to work.
+ */
 #include <assert.h>
 #include <zmq.h>
 #include <string.h>
@@ -24,7 +29,8 @@ int main(int argc,char *argv[])
 	char myServerIP[256]= {0};
 	char serverIP2[256]= {0};
 	char serverIP3[256]= {0};
-	int counter = 0;
+	int counter1 = 0;
+	int counter2 = 0;
 
 	printf("ports:[%s] [%s] [%s]\n", argv[1], argv[2], argv[3]);
 
@@ -36,55 +42,65 @@ int main(int argc,char *argv[])
 	sprintf(serverIP2, "tcp://localhost:%s", serverPort2);
 	sprintf(serverIP3, "tcp://localhost:%s", serverPort3);
 
-    void *responder = zmq_socket(context, ZMQ_PULL);
+    void *responder = zmq_socket(context, ZMQ_PUSH);
     int rc = zmq_bind(responder, myServerIP);
     assert (rc == 0);
 
+    void *reqServer2 = zmq_socket(context, ZMQ_PULL);
+    void *reqServer3 = zmq_socket(context, ZMQ_PULL);
+    zmq_connect(reqServer2, serverIP2);
+    zmq_connect(reqServer3, serverIP3);
+
+    // Initialize random number generator
     srandom ((unsigned) time (NULL));
 	int myRandomNum = rand() % 500;
 
 	char sendBuffer [10] = {0};
 	sprintf(sendBuffer, "%d", myRandomNum);
-
-    void *reqServer2 = zmq_socket(context, ZMQ_PUSH);
-    void *reqServer3 = zmq_socket(context, ZMQ_PUSH);
-    zmq_connect(reqServer2, serverPort2);
-    zmq_connect(reqServer3, serverPort3);
+	printf("myRandomNum is: [%d]\n", myRandomNum);
 
     zmq_pollitem_t items [] = {
         { reqServer2, 0, ZMQ_POLLIN, 0 },
         { reqServer3, 0, ZMQ_POLLIN, 0 }
     };
 
-	printf("here\n");
-	zmq_send(reqServer2, sendBuffer, 5, 0);
+	printf("here1\n");
+	zmq_send(responder, sendBuffer, 5, 0);
 	printf("here as well\n");
-	zmq_send(reqServer3, sendBuffer, 5, 0);
+	zmq_send(responder, sendBuffer, 5, 0);
 
     //  Process messages from both sockets
     while(1)
 	{
         char msg [256];
 
-        zmq_poll(items, 2, -1);
-        if(items [0].revents & ZMQ_POLLIN)
+        int rc = zmq_poll(items, 2, -1);
+		assert (rc >= 0);
+
+        if(items[0].revents & ZMQ_POLLIN)
 		{
             int size = zmq_recv(reqServer2, msg, 255, 0);
             if(size != -1)
 			{
+				printf("from reqServer2: [%s]\n", msg);
 				myRandomNum += atoi(msg);
-				counter++;
+				memset(msg, 0, sizeof(msg));
+				counter1++;
             }
         }
-        if(items [1].revents & ZMQ_POLLIN)
+
+        if(items[1].revents & ZMQ_POLLIN)
 		{
             int size = zmq_recv(reqServer3, msg, 255, 0);
-            if(size != -1) {
+            if(size != -1)
+			{
+				printf("from reqServer3: [%s]\n", msg);
 				myRandomNum += atoi(msg);
-				counter++;
+				memset(msg, 0, sizeof(msg));
+				counter2++;
             }
         }
-		if (counter == 2) break;
+		if (counter1 && counter2 ) break;
     }
 
 	printf("The final number is : [%d]\n", myRandomNum);

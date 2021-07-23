@@ -41,15 +41,13 @@ int main (int argc,char *argv[])
     int rc = zmq_bind(responder, myServerIP);
     assert (rc == 0);
 
-	printf("ports:[%s] [%s] [%s]\n", myServerIP, serverIP2, serverIP3);
-
 	//printf ("Connecting to hello world server...\n");
 	void *reqServer2 = zmq_socket(context, ZMQ_PUSH);
 	void *reqServer3 = zmq_socket(context, ZMQ_PUSH);
 	zmq_connect(reqServer2, serverIP2);
 	zmq_connect(reqServer3, serverIP3);
 
-    //  Initialize random number generator
+    // Initialize random number generator
     srandom ((unsigned) time (NULL));
 	int myRandomNum = rand() % 500;
 

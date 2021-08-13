@@ -3,11 +3,8 @@
 ZMQOPTS=-lzmq -lczmq
 
 all:
-	g++ multiProcesses.c  $(ZMQOPTS) -o multiProcesses
-
-multiProcesses:
-	g++ multiProcesses.c  $(ZMQOPTS) -o multiProcesses
+	g++ multipub-sub.c  $(ZMQOPTS) -lpthread -o multiPubSub
 
 clean:
-	rm -f multiProcesses
+	rm -f multiPubSub
 	rm -f result*.txt

@@ -26,9 +26,9 @@ struct servers reqServer[NUM_OF_NODES];
 int myRandomNum;
 int proc_id;
 
-static void *server_routine(void *context)
+static void *serverRoutine(void *context)
 {
-	const char *WhoAmI= "server_routine";
+	const char *WhoAmI= "serverRoutine";
 
 	printf("%s*enter\n", WhoAmI);
 
@@ -41,7 +41,22 @@ static void *server_routine(void *context)
 	}
     assert(rc == 0);
 
+
+    //  Socket to talk to main process so we know when to stop
+    void *receiver = zmq_socket (context, ZMQ_PAIR);
+	char receiverIP[25];
+	sprintf(receiverIP, "inproc://server%d", proc_id);
+    rc = zmq_connect(receiver, receiverIP);
+	if (rc != 0)
+	{
+		printf("connect errno: [%d] [%s]\n", errno, strerror(errno));
+	}
+    assert(rc == 0);
+	printf("%s*i got this far\n", WhoAmI);
+
+
 	char sendBuffer[25];
+	char areWeDone[6];
 	int initialRandomNum = myRandomNum;
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 
@@ -53,15 +68,27 @@ static void *server_routine(void *context)
 		//printf("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[proc_id].value, sendBuffer, 25, 0);
 		memset(sendBuffer, 0, sizeof(sendBuffer));
+
+//	 	zmq_recv(receiver, areWeDone, 5, ZMQ_DONTWAIT);
+//		if (!memcmp(areWeDone, "done", 4))
+//			break;
+	}
+
+	for(int i = 0; i < NUM_OF_NODES ; i++)
+	{
+		sprintf(sendBuffer, "%d %d", i+5, initialRandomNum);
+		//printf("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
+		zmq_send(reqServer[proc_id].value, sendBuffer, 25, 0);
+		memset(sendBuffer, 0, sizeof(sendBuffer));
 	}
 
 	printf("%s*exit\n", WhoAmI);
 	return NULL;
 }
 
-static void *worker_routine(void *context)
+static void *workerRoutine(void *context)
 {
-	const char *WhoAmI= "worker_routine";
+	const char *WhoAmI= "workerRoutine";
 	printf("%s*enter\n", WhoAmI);
 
 	for(int i = 0; i < NUM_OF_NODES; i++)
@@ -83,6 +110,8 @@ static void *worker_routine(void *context)
 
 
 	char recvBuffer[26];
+	int recvNumber;
+	int dummy;
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
 	for(int i = 0; i < NUM_OF_NODES; i++)
@@ -92,7 +121,8 @@ static void *worker_routine(void *context)
 		printf("%s*yes?[%s]\n", WhoAmI, serversIP[i]);
 		zmq_recv(reqServer[i].value, recvBuffer, 25, 0);
 		printf("Received data as server[%d]: [%s]...\n", proc_id, recvBuffer);
-		myRandomNum += atoi(recvBuffer);
+		sscanf(recvBuffer, "%d %d", &dummy, &recvNumber);
+		myRandomNum += recvNumber;
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 
@@ -120,11 +150,8 @@ void init()
 		}
 
 		hostsBuffer[strcspn(hostsBuffer, "\n")] = 0;
-		//printf("[%s]\n", hostsBuffer);
 		ip = strtok(hostsBuffer, " ");
-		//printf("[%s]\n", ip);
 		port = strtok(NULL, " ");
-		//printf("[%s]\n", port);
 		sprintf(serversIP[i], "tcp://%s:%s", ip, port);
 	}
 }
@@ -146,7 +173,7 @@ int main (int argc,char *argv[])
 
 	init();
 
-	// dirty solution to fix the server
+	// dirty solution to fix the server ip
 	char *dummy = strtok(serversIP[proc_id], ":");
 	dummy = strtok( NULL, ":");
 	dummy = strtok( NULL, ":");
@@ -154,20 +181,28 @@ int main (int argc,char *argv[])
 	//build the connection for the servert correctly
 	sprintf(serversIP[proc_id], "tcp://*:%s", dummy);
 
-    // Initialize random number generator. use process number as seed
+	//  Socket to talk to server and inform it when workers are done
+    void *updateServer = zmq_socket(context, ZMQ_PAIR);
+	char updateServerIP[25];
+	sprintf(updateServerIP, "inproc://server%d", proc_id);
+    int rc = zmq_bind(updateServer, updateServerIP);
+	assert(rc == 0);
+
+    /* Initialize random number generator. use process number as seed
+	 	add 3 because 0 and 1 produce the same number */
 	srand(proc_id + 3);
 	myRandomNum = rand() % 500;
 
 	printf("process:[%d] random number:[%d] serverIP:[%s]\n", proc_id, myRandomNum, serversIP[proc_id]);
 
-	pthread_t server;
-	pthread_t worker;
-	pthread_create(&worker, NULL, worker_routine, context);
-	pthread_create(&server, NULL, server_routine, context);
+	pthread_t server, worker;
+	pthread_create(&worker, NULL, workerRoutine, context);
+	pthread_create(&server, NULL, serverRoutine, context);
 
 	pthread_join(worker, NULL);
+	zmq_send(updateServer, "done", 4, 0);
+	printf("this is the end the final number is:[%d]\n", myRandomNum);
 	pthread_join(server, NULL);
-	printf("this is the end\n");
 	for(int i = 0; i < NUM_OF_NODES; i++) zmq_close(reqServer[i].value);
 	fflush(stdout);
 	zmq_ctx_destroy(context);

@@ -3,11 +3,11 @@
 ZMQOPTS=-lzmq -lczmq
 
 all:
-	g++ multiProcesses.c  $(ZMQOPTS) -o multiProcesses
+	g++ multiProcesses.c  $(ZMQOPTS) -o multiProcesses.o
 
 multiProcesses:
-	g++ multiProcesses.c  $(ZMQOPTS) -o multiProcesses
+	g++ multiProcesses.c  $(ZMQOPTS) -o multiProcesses.o
 
 clean:
-	rm -f multiProcesses
+	rm -f multiProcesses.o
 	rm -f result*.txt

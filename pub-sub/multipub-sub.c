@@ -203,6 +203,7 @@ int main (int argc,char *argv[])
 	zmq_send(updateServer, "done", 4, 0);
 	printf("this is the end the final number is:[%d]\n", myRandomNum);
 	pthread_join(server, NULL);
+	zmq_close(updateServer);
 	for(int i = 0; i < NUM_OF_NODES; i++) zmq_close(reqServer[i].value);
 	fflush(stdout);
 	zmq_ctx_destroy(context);

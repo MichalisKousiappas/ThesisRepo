@@ -82,6 +82,8 @@ static void *serverRoutine(void *context)
 		memset(sendBuffer, 0, sizeof(sendBuffer));
 	}
 
+	zmq_close(reqServer[proc_id].value);
+	zmq_close(receiver);
 	printf("%s*exit\n", WhoAmI);
 	return NULL;
 }
@@ -126,6 +128,11 @@ static void *workerRoutine(void *context)
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 
+	for(int i = 0; i < NUM_OF_NODES; i++)
+	{
+		if ( i == proc_id) continue;
+		zmq_close(reqServer[i].value);
+	}
 	printf("%s*exit\n", WhoAmI);
 	return NULL;
 }
@@ -203,9 +210,9 @@ int main (int argc,char *argv[])
 	zmq_send(updateServer, "done", 4, 0);
 	printf("this is the end the final number is:[%d]\n", myRandomNum);
 	pthread_join(server, NULL);
-	zmq_close(updateServer);
-	for(int i = 0; i < NUM_OF_NODES; i++) zmq_close(reqServer[i].value);
+
 	fflush(stdout);
+	zmq_close(updateServer);
 	zmq_ctx_destroy(context);
 	return 0;
 }

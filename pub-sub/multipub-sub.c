@@ -82,8 +82,10 @@ static void *serverRoutine(void *context)
 		memset(sendBuffer, 0, sizeof(sendBuffer));
 	}
 
+	// clean up your mess before exiting
 	zmq_close(reqServer[proc_id].value);
 	zmq_close(receiver);
+
 	printf("%s*exit\n", WhoAmI);
 	return NULL;
 }
@@ -107,7 +109,7 @@ static void *workerRoutine(void *context)
 		printf("%s*proc:[%d] filter:[%s]\n", WhoAmI, i, filter);
 		zmq_setsockopt(reqServer[i].value, ZMQ_SUBSCRIBE, filter, strlen(filter));
 
-		printf("%s*iteration [%d]\n", WhoAmI, i);
+		//printf("%s*iteration [%d]\n", WhoAmI, i);
 	}
 
 
@@ -120,7 +122,7 @@ static void *workerRoutine(void *context)
 	{
 		if (i == proc_id) continue;
 
-		printf("%s*yes?[%s]\n", WhoAmI, serversIP[i]);
+		printf("%s*awaiting to recieve something from [%s]\n", WhoAmI, serversIP[i]);
 		zmq_recv(reqServer[i].value, recvBuffer, 25, 0);
 		printf("Received data as server[%d]: [%s]...\n", proc_id, recvBuffer);
 		sscanf(recvBuffer, "%d %d", &dummy, &recvNumber);
@@ -128,6 +130,7 @@ static void *workerRoutine(void *context)
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 
+	// clean up your mess before exiting
 	for(int i = 0; i < NUM_OF_NODES; i++)
 	{
 		if ( i == proc_id) continue;

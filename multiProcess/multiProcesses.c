@@ -14,6 +14,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+//use this bad boy so printf are printed on demand and not always
+#ifdef DEBUG
+#define debug(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define debug(fmt, ...) ((void)0)
+#endif
+
 struct servers{
     int type;
     void *value;
@@ -42,11 +49,11 @@ void init()
 		}
 
 		hostsBuffer[strcspn(hostsBuffer, "\n")] = 0;
-		//printf("[%s]\n", hostsBuffer);
+		debug("[%s]\n", hostsBuffer);
 		ip = strtok(hostsBuffer, " ");
-		//printf("[%s]\n", ip);
+		debug("[%s]\n", ip);
 		port = strtok(NULL, " ");
-		//printf("[%s]\n", port);
+		debug("[%s]\n", port);
 		sprintf(serversIP[i], "tcp://%s:%s", ip, port);
 	}
 }

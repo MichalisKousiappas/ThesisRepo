@@ -15,12 +15,19 @@
 #include <time.h>
 #include <pthread.h>
 
+//use this bad boy so printf are printed on demand and not always
+#ifdef DEBUG
+#define debug(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define debug(fmt, ...) ((void)0)
+#endif
+
 struct servers{
     int type;
     void *value;
 };
 
-#define NUM_OF_NODES 3
+#define NUM_OF_NODES 15
 char serversIP[NUM_OF_NODES][256];
 struct servers reqServer[NUM_OF_NODES];
 int myRandomNum;
@@ -52,7 +59,7 @@ static void *serverRoutine(void *context)
 		printf("connect errno: [%d] [%s]\n", errno, strerror(errno));
 	}
     assert(rc == 0);
-	printf("%s*i got this far\n", WhoAmI);
+	debug("%s* i got this far\n", WhoAmI);
 
 
 	char sendBuffer[25];
@@ -65,19 +72,20 @@ static void *serverRoutine(void *context)
 		if (i == NUM_OF_NODES) i = 0;
 
 		sprintf(sendBuffer, "%d %d", i+5, initialRandomNum);
-		//printf("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
+		debug("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[proc_id].value, sendBuffer, 25, 0);
 		memset(sendBuffer, 0, sizeof(sendBuffer));
 
-//	 	zmq_recv(receiver, areWeDone, 5, ZMQ_DONTWAIT);
-//		if (!memcmp(areWeDone, "done", 4))
-//			break;
+		//when worker is done receiving, close the server.
+		zmq_recv(receiver, areWeDone, 5, ZMQ_DONTWAIT);
+		if (!memcmp(areWeDone, "done", 4))
+			break;
 	}
 
 	for(int i = 0; i < NUM_OF_NODES ; i++)
 	{
 		sprintf(sendBuffer, "%d %d", i+5, initialRandomNum);
-		//printf("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
+		debug("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[proc_id].value, sendBuffer, 25, 0);
 		memset(sendBuffer, 0, sizeof(sendBuffer));
 	}
@@ -106,10 +114,10 @@ static void *workerRoutine(void *context)
 
 		char filter[25];
 		sprintf(filter, "%d", i+5);
-		printf("%s*proc:[%d] filter:[%s]\n", WhoAmI, i, filter);
+		debug("%s*proc:[%d] filter:[%s]\n", WhoAmI, i, filter);
 		zmq_setsockopt(reqServer[i].value, ZMQ_SUBSCRIBE, filter, strlen(filter));
 
-		//printf("%s*iteration [%d]\n", WhoAmI, i);
+		debug("%s*iteration [%d]\n", WhoAmI, i);
 	}
 
 
@@ -122,7 +130,7 @@ static void *workerRoutine(void *context)
 	{
 		if (i == proc_id) continue;
 
-		printf("%s*awaiting to recieve something from [%s]\n", WhoAmI, serversIP[i]);
+		debug("%s*awaiting to recieve something from [%s]\n", WhoAmI, serversIP[i]);
 		zmq_recv(reqServer[i].value, recvBuffer, 25, 0);
 		printf("Received data as server[%d]: [%s]...\n", proc_id, recvBuffer);
 		sscanf(recvBuffer, "%d %d", &dummy, &recvNumber);
@@ -176,7 +184,7 @@ int main (int argc,char *argv[])
 		return -1;
 	}
 
-	printf("%s*enter\n", WhoAmI);
+	debug("%s*enter\n", WhoAmI);
 
 	proc_id = atoi(argv[1]);
 	void *context = zmq_ctx_new ();
@@ -210,6 +218,15 @@ int main (int argc,char *argv[])
 	pthread_create(&server, NULL, serverRoutine, context);
 
 	pthread_join(worker, NULL);
+
+	/* this allows for the rest of the processes to receive the messages
+	 * Because if we turn of the server as soon as the worker is done then
+	 * the other processes will stuck waiting for the the server to send the message.
+	 * Unfortunetly i could not find another way to handle this.
+	 * Also this is a terrible solution...
+	 * */
+	sleep(1);
+
 	zmq_send(updateServer, "done", 4, 0);
 	printf("this is the end the final number is:[%d]\n", myRandomNum);
 	pthread_join(server, NULL);

@@ -5,7 +5,6 @@
  * to run all the processes at the same time replace NUM_OF_NODES and run this:
  * 	`for i in {0..NUM_OF_NODES - 1}; do ./multiProcesses $i NUM_OF_NODES > result$i.txt & done`
  */
-
 #include <assert.h>
 #include <zmq.h>
 #include <string.h>
@@ -16,7 +15,7 @@
 
 //use this bad boy so printf are printed on demand and not always
 #ifdef DEBUG
-#define debug(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
+#define debug(fmt, ...) fprintf(stdout, "%s: " fmt, GetTime(), ##__VA_ARGS__)
 #else
 #define debug(fmt, ...) ((void)0)
 #endif
@@ -40,10 +39,20 @@ int proc_id;
 int badPlayers;
 struct output out = {0, 0};
 
+char *GetTime()
+{
+	time_t t;
+	char *buf = (char *) malloc(36);
+
+	time(&t);
+    strftime(buf, 35, "%b %d %T", localtime(&t));
+	return buf;	
+}
+
 /**
   Send the same message to all other nodes
  */
-void DealerDistribute(struct servers reqServer[])
+void Distribute(struct servers reqServer[], const char *secret)
 {
 	char sendBuffer [15];
 	char recvBuffer [15];
@@ -51,20 +60,50 @@ void DealerDistribute(struct servers reqServer[])
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
-	debug("%s*enter\n", __FUNCTION__);
-	// "Secret" binary string
-	sprintf(sendBuffer, "%s", "110011011");
+	if ((proc_id%3 == 0) && (proc_id != 0))
+		sprintf(sendBuffer, "%s", "0011011");
+	else
+		sprintf(sendBuffer, "%s", secret);
 
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
-		zmq_recv(reqServer[proc_id].value, recvBuffer, 10, 0);
-		printf("Received data as dealer: [%s]...\n", recvBuffer);
-		memset(recvBuffer, 0, sizeof(recvBuffer));
-
+		printf("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[i].value, sendBuffer, 10, 0);
-		printf("Send data as dealer to [%d]: [%s]...\n", i, sendBuffer);
+
+		zmq_recv(reqServer[proc_id].value, recvBuffer, 10, 0);
+		printf("Received data as server[%d]: [%s]...\n", proc_id, recvBuffer);
+
+		// Count the messages that match yours
+		if(sendBuffer[0] && !memcmp(sendBuffer, recvBuffer, strlen(sendBuffer)))
+		{
+			tally++;
+		}
+		memset(recvBuffer, 0, sizeof(recvBuffer));
+	}
+}
+
+/*
+   Graded-Cast tally validation
+ */
+void ValidateTally()
+{
+	debug("%s tally:[%d]\n", __FUNCTION__, tally);
+	if (tally >= (2*badPlayers + 1))
+	{
+		out.value = tally;
+		out.code = 2;
+	}
+	else if ((tally <= (2*badPlayers)) && (tally > badPlayers))
+	{
+		out.value = tally;
+		out.code = 1;
+	}
+	else
+	{
+		out.value = 0;
+		out.code = 0;
 	}
 }
 
@@ -73,18 +112,42 @@ void DealerDistribute(struct servers reqServer[])
  */
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256])
 {
-	for(int i = 0; i < numOfNodes; i++)
+	debug("%s*enter\n", __FUNCTION__);
+	for(int i = 0; i <= numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
+
 		reqServer[i].value = zmq_socket(context, ZMQ_PUSH);
 		reqServer[i].type = ZMQ_PUSH;
 		zmq_connect(reqServer[i].value, serversIP[i]);
 	}
+	debug("%s*exit\n", __FUNCTION__);
+}
+
+char *GetFromDealer(struct servers reqServer[])
+{
+	debug("%s*enter\n", __FUNCTION__);
+	char *result = (char*) malloc(15);
+	char sendBuffer [15];
+
+	memset(sendBuffer, 0, sizeof(sendBuffer));
+	memset(result, 0, sizeof(15));
+
+	sprintf(sendBuffer, "%d", proc_id);
+
+	printf("Sending data as client[%d] to dealer: [%s]...\n", proc_id, sendBuffer);
+	zmq_send(reqServer[dealer].value, sendBuffer, 10, 0);
+
+	zmq_recv(reqServer[proc_id].value, result, 10, 0);
+	printf("Received data from dealer: [%s]...\n", result);
+
+	debug("%s*exit\n", __FUNCTION__);
+	return result;
 }
 
 /*
-   Read IP and port from hosts file and fill the
-   the serversIP with the correct values
+	Read IP and port from hosts file and fill the
+	the serversIP with the correct values
  */
 void init(char serversIP[][256])
 {
@@ -117,19 +180,20 @@ void init(char serversIP[][256])
 
 int main (int argc,char *argv[])
 {
-	if (argc != 2)
+	if (argc != 3)
 	{
 		printf("not enough arguments\n");
-		printf("Usage: dealerProc.o <number of nodes>\n");
+		printf("Usage: Graded-Cast.o <proc id> <number of nodes>\n");
 		return -1;
 	}
 
-	numOfNodes= atoi(argv[1]);
-	proc_id = numOfNodes; //dealers id is always the last one for consistency
+	proc_id = atoi(argv[1]);
+	numOfNodes= atoi(argv[2]);
 	dealer = numOfNodes;
 	badPlayers = numOfNodes/3;
 	char serversIP[numOfNodes+1][256];
 	struct servers reqServer[numOfNodes+1];
+	char *secret;
 
 	debug("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
 	void *context = zmq_ctx_new();
@@ -154,10 +218,12 @@ int main (int argc,char *argv[])
 	//connect to all other nodes
 	PrepareConnections(context, reqServer, serversIP);
 
-	//force output
-	fflush(stdout);
+	secret = GetFromDealer(reqServer);
+	//secret = "0101";
+	Distribute(reqServer, secret);
+	ValidateTally();
 
-	DealerDistribute(reqServer);
+	printf("process[%d] output:code[%d] value:[%d]\n", proc_id, out.code, out.value);
 
 	for(int i = 0; i <= numOfNodes; i++) zmq_close(reqServer[i].value);
 	fflush(stdout);

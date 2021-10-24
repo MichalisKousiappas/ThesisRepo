@@ -91,7 +91,7 @@ int main (int argc,char *argv[])
 		if (i == proc_id) continue;
 
 		reqServer[i].value = zmq_socket(context, ZMQ_PUSH);
-		reqServer[proc_id].type = ZMQ_PUSH;
+		reqServer[i].type = ZMQ_PUSH;
 		zmq_connect(reqServer[i].value, serversIP[i]);
 	}
 

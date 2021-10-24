@@ -27,7 +27,7 @@ struct servers{
     void *value;
 };
 
-#define NUM_OF_NODES 15
+#define NUM_OF_NODES 5
 char serversIP[NUM_OF_NODES][256];
 struct servers reqServer[NUM_OF_NODES];
 int myRandomNum;

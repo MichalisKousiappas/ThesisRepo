@@ -4,15 +4,15 @@
 # use EXTRAS="-DDEBUG" to add debugging printfs
 ZMQOPTS=-lzmq -lczmq
 
-all: Graded-Cast dealer
+all: Grade-Cast dealer
 
 Graded-Cast:
-	g++ Graded-Cast.c $(EXTRAS) $(ZMQOPTS) -o Graded-Cast.o
+	g++ Graded-Cast.c $(EXTRAS) $(ZMQOPTS) -o Grade-Cast.o
 
 dealer:
 	g++ dealerProc.c $(EXTRAS) $(ZMQOPTS) -o dealerProc.o
 
 clean:
-	rm -f Graded-Cast.o
+	rm -f Grade-Cast.o
 	rm -f dealerProc.o
 	rm -f result*.txt

@@ -1,9 +1,6 @@
 /*
- * Example with PUSH/PULL
- * This example reads ports and hosts from the file hosts.txt
- * make sure the const NUM_OF_NODES is equal or less than the records of hosts.txt
- * to run all the processes at the same time replace NUM_OF_NODES and run this:
- * 	`for i in {0..NUM_OF_NODES - 1}; do ./multiProcesses $i NUM_OF_NODES > result$i.txt & done`
+ * Dealer process for Grade-Cast
+ * Can be run either before or after Grade-Cast for loop
  */
 
 #include <assert.h>
@@ -13,13 +10,16 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 
 //use this bad boy so printf are printed on demand and not always
 #ifdef DEBUG
-#define debug(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
+#define TraceDebug(fmt, ...) fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__)
 #else
-#define debug(fmt, ...) ((void)0)
+#define TraceDebug(fmt, ...) ((void)0)
 #endif
+//use this bad boy instaed of printf for better formatting
+#define TraceInfo(fmt, ...) fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__)
 
 struct output
 {
@@ -40,6 +40,21 @@ int proc_id;
 int badPlayers;
 struct output out = {0, 0};
 
+char *GetTime()
+{
+	time_t t;
+	struct timeval timeVar;
+	char *buf = (char *) malloc(25);
+	memset(buf, 0, 40);
+
+	gettimeofday(&timeVar, NULL);
+	time(&t);
+    strftime(buf, 21, "%d/%m/%Y %T", localtime(&t));
+	sprintf(buf+19, ".%ld", timeVar.tv_usec);
+	buf[23] = '\0'; //force null otherwise it will print more than 3 digits
+	return buf;
+}
+
 /**
   Send the same message to all other nodes
  */
@@ -51,20 +66,20 @@ void DealerDistribute(struct servers reqServer[])
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
-	debug("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	// "Secret" binary string
 	sprintf(sendBuffer, "%s", "110011011");
 
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if (i == proc_id) continue;
+		//if (i == proc_id) continue;
 		zmq_recv(reqServer[proc_id].value, recvBuffer, 10, 0);
-		printf("Received data as dealer: [%s]...\n", recvBuffer);
+		TraceInfo("Received data as dealer: [%s]...\n", recvBuffer);
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 
 		zmq_send(reqServer[i].value, sendBuffer, 10, 0);
-		printf("Send data as dealer to [%d]: [%s]...\n", i, sendBuffer);
+		TraceInfo("Send data as dealer to [%d]: [%s]...\n", i, sendBuffer);
 	}
 }
 
@@ -106,11 +121,11 @@ void init(char serversIP[][256])
 		}
 
 		hostsBuffer[strcspn(hostsBuffer, "\n")] = 0;
-		debug("[%d] [%s]\n", i, hostsBuffer);
+		TraceDebug("[%d] [%s]\n", i, hostsBuffer);
 		ip = strtok(hostsBuffer, " ");
-		debug("\t[%s]\n", ip);
+		TraceDebug("\t[%s]\n", ip);
 		port = strtok(NULL, " ");
-		debug("\t[%s]\n", port);
+		TraceDebug("\t[%s]\n", port);
 		sprintf(serversIP[i], "tcp://%s:%s", ip, port);
 	}
 }
@@ -131,7 +146,7 @@ int main (int argc,char *argv[])
 	char serversIP[numOfNodes+1][256];
 	struct servers reqServer[numOfNodes+1];
 
-	debug("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
+	TraceDebug("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
 	void *context = zmq_ctx_new();
 
 	// Initialize
@@ -145,7 +160,7 @@ int main (int argc,char *argv[])
 	// build the connection for the servert correctly
 	sprintf(serversIP[proc_id], "tcp://*:%s", dummy);
 
-	printf("%d: %s\n", proc_id, serversIP[proc_id]);
+	TraceInfo("%d: %s\n", proc_id, serversIP[proc_id]);
 	reqServer[proc_id].value = zmq_socket(context, ZMQ_PULL);
 	reqServer[proc_id].type = ZMQ_PULL;
 	int rc = zmq_bind(reqServer[proc_id].value, serversIP[proc_id]);
@@ -158,6 +173,7 @@ int main (int argc,char *argv[])
 	fflush(stdout);
 
 	DealerDistribute(reqServer);
+	TraceInfo("dealer process finsihed successfully\n");
 
 	for(int i = 0; i <= numOfNodes; i++) zmq_close(reqServer[i].value);
 	fflush(stdout);

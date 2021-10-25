@@ -11,4 +11,4 @@ multiProcesses:
 
 clean:
 	rm -f multiProcesses.o
-	rm -f result*.txt
+	rm -f result*.dmp

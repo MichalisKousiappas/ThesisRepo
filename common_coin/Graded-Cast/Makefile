@@ -6,8 +6,8 @@ ZMQOPTS=-lzmq -lczmq
 
 all: Grade-Cast dealer
 
-Graded-Cast:
-	g++ Graded-Cast.c $(EXTRAS) $(ZMQOPTS) -o Grade-Cast.o
+Grade-Cast:
+	g++ Grade-Cast.c $(EXTRAS) $(ZMQOPTS) -o Grade-Cast.o
 
 dealer:
 	g++ dealerProc.c $(EXTRAS) $(ZMQOPTS) -o dealerProc.o
@@ -15,4 +15,4 @@ dealer:
 clean:
 	rm -f Grade-Cast.o
 	rm -f dealerProc.o
-	rm -f result*.txt
+	rm -f result*.dmp

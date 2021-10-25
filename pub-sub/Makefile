@@ -9,4 +9,4 @@ all:
 
 clean:
 	rm -f multiPubSub.o
-	rm -f result*.txt
+	rm -f result*.dmp

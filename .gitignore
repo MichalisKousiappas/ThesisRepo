@@ -2,3 +2,4 @@ result*.txt
 *.swp
 *.o
 *.bkp
+*.dmp

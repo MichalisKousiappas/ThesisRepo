@@ -3,7 +3,7 @@
  * This example reads ports and hosts from the file hosts.txt
  * make sure the const NUM_OF_NODES is equal or less than the records of hosts.txt
  * to run all the processes at the same time replace NUM_OF_NODES and run this:
- * 	`for i in {0..NUM_OF_NODES - 1}; do ./multiProcesses $i NUM_OF_NODES > result$i.txt & done`
+ * 	`for i in {0..NUM_OF_NODES - 1}; do ./multiProcesses $i NUM_OF_NODES > result$i.dmp & done`
  */
 #include <assert.h>
 #include <zmq.h>
@@ -11,14 +11,18 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 
-//use this bad boy so printf are printed on demand and not always
+//use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
-#define debug(fmt, ...) fprintf(stdout, "%s: " fmt, GetTime(), ##__VA_ARGS__)
+#define TraceDebug(fmt, ...) fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
 #else
-#define debug(fmt, ...) ((void)0)
+#define TraceDebug(fmt, ...) ((void)0)
 #endif
+//use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
+#define TraceInfo(fmt, ...)	fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
 
 struct output
 {
@@ -42,11 +46,16 @@ struct output out = {0, 0};
 char *GetTime()
 {
 	time_t t;
-	char *buf = (char *) malloc(36);
+	struct timeval timeVar;
+	char *buf = (char *) malloc(25);
+	memset(buf, 0, 40);
 
+	gettimeofday(&timeVar, NULL);
 	time(&t);
-    strftime(buf, 35, "%b %d %T", localtime(&t));
-	return buf;	
+    strftime(buf, 21, "%d/%m/%Y %T", localtime(&t));
+	sprintf(buf+19, ".%ld", timeVar.tv_usec);
+	buf[23] = '\0'; //force null otherwise it will print more than 3 digits
+	return buf;
 }
 
 /**
@@ -60,6 +69,8 @@ void Distribute(struct servers reqServer[], const char *secret)
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
+	TraceDebug("%s*enter\n", __FUNCTION__);
+
 	if ((proc_id%3 == 0) && (proc_id != 0))
 		sprintf(sendBuffer, "%s", "0011011");
 	else
@@ -69,11 +80,11 @@ void Distribute(struct servers reqServer[], const char *secret)
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
-		printf("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
+		TraceInfo("Sending data as client[%d] to [%d]: [%s]...\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[i].value, sendBuffer, 10, 0);
 
 		zmq_recv(reqServer[proc_id].value, recvBuffer, 10, 0);
-		printf("Received data as server[%d]: [%s]...\n", proc_id, recvBuffer);
+		TraceInfo("Received data as server[%d]: [%s]...\n", proc_id, recvBuffer);
 
 		// Count the messages that match yours
 		if(sendBuffer[0] && !memcmp(sendBuffer, recvBuffer, strlen(sendBuffer)))
@@ -82,6 +93,7 @@ void Distribute(struct servers reqServer[], const char *secret)
 		}
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /*
@@ -89,7 +101,7 @@ void Distribute(struct servers reqServer[], const char *secret)
  */
 void ValidateTally()
 {
-	debug("%s tally:[%d]\n", __FUNCTION__, tally);
+	TraceDebug("%s tally:[%d]\n", __FUNCTION__, tally);
 	if (tally >= (2*badPlayers + 1))
 	{
 		out.value = tally;
@@ -112,7 +124,7 @@ void ValidateTally()
  */
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256])
 {
-	debug("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	for(int i = 0; i <= numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
@@ -121,12 +133,12 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 		reqServer[i].type = ZMQ_PUSH;
 		zmq_connect(reqServer[i].value, serversIP[i]);
 	}
-	debug("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 char *GetFromDealer(struct servers reqServer[])
 {
-	debug("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	char *result = (char*) malloc(15);
 	char sendBuffer [15];
 
@@ -135,13 +147,13 @@ char *GetFromDealer(struct servers reqServer[])
 
 	sprintf(sendBuffer, "%d", proc_id);
 
-	printf("Sending data as client[%d] to dealer: [%s]...\n", proc_id, sendBuffer);
+	TraceInfo("Sending data as client[%d] to dealer: [%s]...\n", proc_id, sendBuffer);
 	zmq_send(reqServer[dealer].value, sendBuffer, 10, 0);
 
 	zmq_recv(reqServer[proc_id].value, result, 10, 0);
-	printf("Received data from dealer: [%s]...\n", result);
+	TraceInfo("Received data from dealer: [%s]...\n", result);
 
-	debug("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return result;
 }
 
@@ -169,11 +181,11 @@ void init(char serversIP[][256])
 		}
 
 		hostsBuffer[strcspn(hostsBuffer, "\n")] = 0;
-		debug("[%d] [%s]\n", i, hostsBuffer);
+		TraceDebug("[%d] [%s]\n", i, hostsBuffer);
 		ip = strtok(hostsBuffer, " ");
-		debug("\t[%s]\n", ip);
+		TraceDebug("\t[%s]\n", ip);
 		port = strtok(NULL, " ");
-		debug("\t[%s]\n", port);
+		TraceDebug("\t[%s]\n", port);
 		sprintf(serversIP[i], "tcp://%s:%s", ip, port);
 	}
 }
@@ -195,7 +207,7 @@ int main (int argc,char *argv[])
 	struct servers reqServer[numOfNodes+1];
 	char *secret;
 
-	debug("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
+	TraceDebug("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
 	void *context = zmq_ctx_new();
 
 	// Initialize
@@ -209,7 +221,7 @@ int main (int argc,char *argv[])
 	// build the connection for the servert correctly
 	sprintf(serversIP[proc_id], "tcp://*:%s", dummy);
 
-	printf("%d: %s\n", proc_id, serversIP[proc_id]);
+	TraceInfo("%d: %s\n", proc_id, serversIP[proc_id]);
 	reqServer[proc_id].value = zmq_socket(context, ZMQ_PULL);
 	reqServer[proc_id].type = ZMQ_PULL;
 	int rc = zmq_bind(reqServer[proc_id].value, serversIP[proc_id]);
@@ -223,10 +235,9 @@ int main (int argc,char *argv[])
 	Distribute(reqServer, secret);
 	ValidateTally();
 
-	printf("process[%d] output:code[%d] value:[%d]\n", proc_id, out.code, out.value);
+	TraceInfo("process[%d] output:code[%d] value:[%d]\n", proc_id, out.code, out.value);
 
 	for(int i = 0; i <= numOfNodes; i++) zmq_close(reqServer[i].value);
-	fflush(stdout);
 	zmq_ctx_destroy(context);
 	return 0;
 }

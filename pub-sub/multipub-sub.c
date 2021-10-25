@@ -3,7 +3,7 @@
  * This example reads ports and hosts from the file hosts.txt with an attempt at threads
  * make sure the const NUM_OF_NODES is equal or less than the records of hosts.txt
  * to run all the processes at the same time replace NUM_OF_NODES and run this:
- * 	`for i in {0..NUM_OF_NODES - 1}; do ./multipub-sub $i > result$i.txt & done`
+ * 	`for i in {0..NUM_OF_NODES - 1}; do ./multipub-sub $i > result$i.dmp & done`
  */
 
 #include <assert.h>

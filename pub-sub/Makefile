@@ -7,6 +7,9 @@ ZMQOPTS=-lzmq -lczmq
 all:
 	g++ multipub-sub.c $(EXTRAS) $(ZMQOPTS) -lpthread -o multiPubSub.o
 
+debug:
+	g++ multipub-sub.c -DDEBUG $(ZMQOPTS) -lpthread -o multiPubSub.o
+
 clean:
 	rm -f multiPubSub.o
 	rm -f result*.dmp

@@ -49,7 +49,6 @@ void GetMessages(struct servers reqServer[], const char *secret)
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
-	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
@@ -121,7 +120,7 @@ char *GetFromDealer(struct servers reqServer[])
 	zmq_send(reqServer[numOfNodes].value, sendBuffer, 10, 0);
 
 	zmq_recv(reqServer[proc_id].value, result, 10, 0);
-	TraceInfo("Received data from dealer: [%s]\n", result);
+	TraceInfo("Received secret from dealer: [%s]\n", result);
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
 	return result;
@@ -130,17 +129,18 @@ char *GetFromDealer(struct servers reqServer[])
 /**
   Send the same message to all other nodes
  */
-void DealerDistribute(struct servers reqServer[])
+void DealerDistribute(struct servers reqServer[], const char *secret)
 {
 	char sendBuffer [15];
 	char recvBuffer [15];
+	int requestor;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	// "Secret" binary string
-	sprintf(sendBuffer, "%s", "110011011");
+	sprintf(sendBuffer, "%s", secret);
 
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
@@ -148,10 +148,12 @@ void DealerDistribute(struct servers reqServer[])
 		if (i == proc_id) continue;
 		zmq_recv(reqServer[numOfNodes].value, recvBuffer, 10, 0);
 		TraceInfo("Received data as dealer: [%s]\n", recvBuffer);
-		memset(recvBuffer, 0, sizeof(recvBuffer));
 
-		zmq_send(reqServer[i].value, sendBuffer, 10, 0);
-		TraceInfo("Send data as dealer to [%d]: [%s]\n", i, sendBuffer);
+		requestor = atoi(recvBuffer);
+		zmq_send(reqServer[requestor].value, sendBuffer, 10, 0);
+		TraceInfo("Send data as dealer to [%d]: [%s]\n", requestor, sendBuffer);
+
+		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
@@ -189,15 +191,22 @@ void init(char serversIP[][256])
 	}
 }
 
-void ValidateInput()
+void ValidateInput(int argc)
 {
-	if (dealer > numOfNodes -1 || dealer < 0)
+	if (argc != 4)
+	{
+		printf("not enough arguments\n");
+		printf("Usage: Graded-Cast.o <proc id> <number of nodes> <dealer>\n");
+		exit(-1);
+	}
+
+	if ((dealer > numOfNodes -1) || (dealer < 0))
 	{
 		printf("dealer process id not valid\n");
 		exit(-3);
 	}
 
-	if (proc_id > numOfNodes -1 || proc_id < 0)
+	if ((proc_id > numOfNodes -1) || (proc_id < 0))
 	{
 		printf("process id not valid\n");
 		exit(-4);

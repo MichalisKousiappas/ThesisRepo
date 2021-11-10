@@ -45,8 +45,8 @@ void GetMessages(struct servers reqServer[], const char *secret);
 void ValidateTally();
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256]);
 char *GetFromDealer(struct servers reqServer[]);
-void DealerDistribute(struct servers reqServer[]);
+void DealerDistribute(struct servers reqServer[], const char *secret);
 void init(char serversIP[][256]);
-void ValidateInput();
+void ValidateInput(int argc);
 
 #endif

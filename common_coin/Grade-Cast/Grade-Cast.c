@@ -16,13 +16,6 @@ struct output out = {0, 0};
 
 int main (int argc,char *argv[])
 {
-	if (argc != 4)
-	{
-		printf("not enough arguments\n");
-		printf("Usage: Graded-Cast.o <proc id> <number of nodes> <dealer\n");
-		return -1;
-	}
-
 	proc_id = atoi(argv[1]);
 	numOfNodes= atoi(argv[2]);
 	dealer = atoi(argv[3]);
@@ -30,6 +23,9 @@ int main (int argc,char *argv[])
 	char serversIP[numOfNodes+1][256];
 	struct servers reqServer[numOfNodes+1];
 	char *secret = {0};
+	char temp[15] = {0};
+
+	ValidateInput(argc);
 
 	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
 	void *context = zmq_ctx_new();
@@ -73,12 +69,18 @@ int main (int argc,char *argv[])
 
 	if (proc_id == dealer)
 	{
-		char dummy[] = "110011011";
-		secret = dummy;
-		DealerDistribute(reqServer);
+		memcpy(temp, "110011011", sizeof("110011011"));
+		secret = temp;
+		DealerDistribute(reqServer, secret);
+	//	Distribute(reqServer, "OK");
 	}
 	else
+	{
 		secret = GetFromDealer(reqServer);
+
+	//	zmq_recv(reqServer[proc_id].value, temp, 10, 0);
+	//	TraceInfo("Received dummy data[%d]: [%s]\n", proc_id, temp);
+	}
 
 	sleep(1); //artificial delay so the dealer can distribute the secret to everyone
 

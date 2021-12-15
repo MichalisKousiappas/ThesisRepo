@@ -17,11 +17,11 @@ struct output out = {0, 0};
 int main (int argc,char *argv[])
 {
 	proc_id = atoi(argv[1]);
-	numOfNodes= atoi(argv[2]);
+	numOfNodes = atoi(argv[2]);
 	dealer = atoi(argv[3]);
 	badPlayers = numOfNodes/3;
-	char serversIP[numOfNodes+1][256];
-	struct servers reqServer[numOfNodes+1];
+	char serversIP[numOfNodes][256];
+	struct servers reqServer[numOfNodes];
 	char *secret = {0};
 	char temp[15] = {0};
 
@@ -47,23 +47,6 @@ int main (int argc,char *argv[])
 	int rc = zmq_bind(reqServer[proc_id].value, serversIP[proc_id]);
 	assert(rc == 0);
 
-	if (proc_id == dealer)
-	{
-		// dirty solution to fix the server
-		char *dummy = strtok(serversIP[numOfNodes], ":");
-		dummy = strtok( NULL, ":");
-		dummy = strtok( NULL, ":");
-
-		// build the connection for the servert correctly
-		sprintf(serversIP[numOfNodes], "tcp://*:%s", dummy);
-
-		TraceInfo("%d is the dealer and listens on: %s\n", proc_id, serversIP[numOfNodes]);
-		reqServer[numOfNodes].value = zmq_socket(context, ZMQ_PULL);
-		reqServer[numOfNodes].type = ZMQ_PULL;
-		int rc = zmq_bind(reqServer[numOfNodes].value, serversIP[numOfNodes]);
-		assert(rc == 0);
-	}
-
 	//connect to all other nodes
 	PrepareConnections(context, reqServer, serversIP);
 
@@ -72,14 +55,10 @@ int main (int argc,char *argv[])
 		memcpy(temp, "110011011", sizeof("110011011"));
 		secret = temp;
 		DealerDistribute(reqServer, secret);
-	//	Distribute(reqServer, "OK");
 	}
 	else
 	{
 		secret = GetFromDealer(reqServer);
-
-	//	zmq_recv(reqServer[proc_id].value, temp, 10, 0);
-	//	TraceInfo("Received dummy data[%d]: [%s]\n", proc_id, temp);
 	}
 
 	sleep(1); //artificial delay so the dealer can distribute the secret to everyone
@@ -90,7 +69,7 @@ int main (int argc,char *argv[])
 
 	TraceInfo("process[%d] output:code[%d] value:[%d]\n", proc_id, out.code, out.value);
 
-	for(int i = 0; i <= numOfNodes; i++)
+	for(int i = 0; i < numOfNodes; i++)
 	{
 		TraceDebug("Closed connection[%d]\n", i);
 		zmq_close(reqServer[i].value);

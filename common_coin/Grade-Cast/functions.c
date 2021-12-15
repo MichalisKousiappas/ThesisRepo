@@ -27,7 +27,10 @@ void Distribute(struct servers reqServer[], const char *secret)
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	if ((proc_id%3 == 0) && (proc_id != 0) && (proc_id != dealer))
+	{
 		sprintf(sendBuffer, "%s", "0011011");
+		TraceDebug("%s*I am a traitor hahaha[%d]\n", __FUNCTION__, proc_id);
+	}
 	else
 		sprintf(sendBuffer, "%s", secret);
 
@@ -94,7 +97,7 @@ void ValidateTally()
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
-	for(int i = 0; i <= numOfNodes; i++)
+	for(int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id || (proc_id == dealer && i == numOfNodes)) continue;
 
@@ -117,7 +120,7 @@ char *GetFromDealer(struct servers reqServer[])
 	sprintf(sendBuffer, "%d", proc_id);
 
 	TraceInfo("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
-	zmq_send(reqServer[numOfNodes].value, sendBuffer, 10, 0);
+	zmq_send(reqServer[dealer].value, sendBuffer, 10, 0);
 
 	zmq_recv(reqServer[proc_id].value, result, 10, 0);
 	TraceInfo("Received secret from dealer: [%s]\n", result);
@@ -146,7 +149,7 @@ void DealerDistribute(struct servers reqServer[], const char *secret)
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
-		zmq_recv(reqServer[numOfNodes].value, recvBuffer, 10, 0);
+		zmq_recv(reqServer[dealer].value, recvBuffer, 10, 0);
 		TraceInfo("Received data as dealer: [%s]\n", recvBuffer);
 
 		requestor = atoi(recvBuffer);
@@ -174,7 +177,7 @@ void init(char serversIP[][256])
 		perror("Could not open file");exit(-1);
 	}
 
-	for(int i = 0; i <= numOfNodes; i++)
+	for(int i = 0; i < numOfNodes; i++)
 	{
 		if (!(fgets(hostsBuffer, 150, file)))
 		{
@@ -211,7 +214,7 @@ void ValidateInput(int argc)
 		printf("process id not valid\n");
 		exit(-4);
 	}
-	
+
 	if (numOfNodes < 2)
 	{
 		printf("number of nodes must be greater than 1\n");

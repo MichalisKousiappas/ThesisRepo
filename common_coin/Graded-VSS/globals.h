@@ -11,6 +11,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define SECRETE_SIZE 15
+
 struct output
 {
 	int code;

@@ -5,7 +5,7 @@
  */
 void Distribute(struct servers reqServer[], const char *secret)
 {
-	char sendBuffer [15];
+	char sendBuffer[SECRETE_SIZE];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 
@@ -24,14 +24,14 @@ void Distribute(struct servers reqServer[], const char *secret)
 	{
 		if (i == proc_id) continue;
 		TraceInfo("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
-		zmq_send(reqServer[i].value, sendBuffer, 10, 0);
+		zmq_send(reqServer[i].value, sendBuffer, SECRETE_SIZE, 0);
 	}
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
 void GetMessages(struct servers reqServer[], const char *secret)
 {
-	char recvBuffer [15];
+	char recvBuffer[SECRETE_SIZE];
 
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
@@ -40,7 +40,7 @@ void GetMessages(struct servers reqServer[], const char *secret)
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
-		zmq_recv(reqServer[proc_id].value, recvBuffer, 12, 0);
+		zmq_recv(reqServer[proc_id].value, recvBuffer, SECRETE_SIZE, 0);
 		TraceInfo("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
 
 		// Count the messages that match yours
@@ -82,18 +82,18 @@ void ValidateTally()
 char *GetFromDistributor(struct servers reqServer[], int distributor)
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
-	char *result = (char*) malloc(15);
-	char sendBuffer [15];
+	char *result = (char*) malloc(SECRETE_SIZE);
+	char sendBuffer [SECRETE_SIZE];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
-	memset(result, 0, sizeof(15));
+	memset(result, 0, sizeof(SECRETE_SIZE));
 
 	sprintf(sendBuffer, "%d", proc_id);
 
 	TraceInfo("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
-	zmq_send(reqServer[distributor].value, sendBuffer, 12, 0);
+	zmq_send(reqServer[distributor].value, sendBuffer, SECRETE_SIZE, 0);
 
-	zmq_recv(reqServer[proc_id].value, result, 12, 0);
+	zmq_recv(reqServer[proc_id].value, result, SECRETE_SIZE, 0);
 	TraceInfo("Received secret from dealer: [%s]\n", result);
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
@@ -105,8 +105,8 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
  */
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor)
 {
-	char sendBuffer [15];
-	char recvBuffer [15];
+	char sendBuffer [SECRETE_SIZE];
+	char recvBuffer [SECRETE_SIZE];
 	int requestor;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
@@ -120,11 +120,11 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
-		zmq_recv(reqServer[distributor].value, recvBuffer, 12, 0);
+		zmq_recv(reqServer[distributor].value, recvBuffer, SECRETE_SIZE, 0);
 		TraceInfo("Received data as dealer: [%s]\n", recvBuffer);
 
 		requestor = atoi(recvBuffer);
-		zmq_send(reqServer[requestor].value, sendBuffer, 12, 0);
+		zmq_send(reqServer[requestor].value, sendBuffer, SECRETE_SIZE, 0);
 		TraceInfo("Send data as dealer to [%d]: [%s]\n", requestor, sendBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -134,7 +134,7 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 
 void GradeCast(struct servers reqServer[], int distributor)
 {
-	char temp[15] = {0};
+	char temp[SECRETE_SIZE] = {0};
 	char *secret = {0};
 
 	TraceInfo("%s*enter\n", __FUNCTION__);

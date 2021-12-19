@@ -8,6 +8,7 @@
 #include "polyfunc.h"
 #include "functions.h"
 #include "init.h"
+#include "dealerfunc.h"
 
 int numOfNodes;
 int dealer;
@@ -28,6 +29,7 @@ int main (int argc,char *argv[])
 	struct servers distributorChannel[numOfNodes];
 	double polynomials[CONFIDENCE_PARAM][badPlayers];
 	double polyEvals[numOfNodes][CONFIDENCE_PARAM];
+	char *secret;
 
 	ValidateInput(argc);
 
@@ -35,10 +37,7 @@ int main (int argc,char *argv[])
 	void *context = zmq_ctx_new();
 
 	//Initialize variables
-	init(context, commonChannel, distributorChannel, serversIP, syncIP);
-
-	memset(polynomials, 0, sizeof(polynomials[0][0]) * CONFIDENCE_PARAM * badPlayers);
-	memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
+	init(context, commonChannel, distributorChannel, serversIP, syncIP, polynomials, polyEvals);
 
 	if (proc_id == dealer)
 	{
@@ -55,11 +54,12 @@ int main (int argc,char *argv[])
 		#endif
 	}
 
-	exit(0);
+	secret = DealerDistribute(distributorChannel, polyEvals);
+	TraceDebug("process[%d] secret:[%s]\n", proc_id, secret);
 
-	//all processes take turn and distribute their "secret"
-	for (int distributor = 0; distributor < numOfNodes; distributor++)
-		GradeCast(commonChannel, distributorChannel, distributor);
+	// //all processes take turn and distribute their "secret"
+	// for (int distributor = 0; distributor < numOfNodes; distributor++)
+		// GradeCast(commonChannel, distributorChannel, distributor);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)

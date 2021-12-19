@@ -102,7 +102,13 @@ void ValidateInput(int argc)
 /**
  * Initialize variables with the correct values
 */
-void init(void *context, struct servers reqServer[], struct servers syncServer[], char serversIP[][256], char syncIP[][256])
+void init(void *context, 
+		struct servers reqServer[],
+		struct servers syncServer[],
+		char serversIP[][256],
+		char syncIP[][256],
+		double polynomials[CONFIDENCE_PARAM][badPlayers],
+		double polyEvals[numOfNodes][CONFIDENCE_PARAM])
 {
 	char filename[35] = "hosts.txt";
 	// Fill serversIP
@@ -117,4 +123,7 @@ void init(void *context, struct servers reqServer[], struct servers syncServer[]
 	
 	//connect to all synchronization channels
 	PrepareConnections(context, syncServer, syncIP);
+
+	memset(polynomials, 0, sizeof(polynomials[0][0]) * CONFIDENCE_PARAM * badPlayers);
+	memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
 }

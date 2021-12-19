@@ -11,7 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define SECRETE_SIZE 15
+#define SECRETE_SIZE 150
 #define CONFIDENCE_PARAM 5
 
 struct output

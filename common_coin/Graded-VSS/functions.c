@@ -83,15 +83,15 @@ void ValidateTally()
 }
 
 /**
- * Get Secret from distributor 
- * distributor is essentailly the dealer but in Graded-VSSs Grade-Cast  
- * 	the node that wants to cast something is a different node each time
+ * Get distributors secret 
+ * distributor is the node that initiates Grade-Cast  
+ * 	the node is a different node each time
 */
 char *GetFromDistributor(struct servers reqServer[], int distributor)
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	char *result = (char*) malloc(SECRETE_SIZE);
-	char sendBuffer [SECRETE_SIZE];
+	char sendBuffer[5];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(result, 0, sizeof(SECRETE_SIZE));
@@ -99,7 +99,7 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
 	sprintf(sendBuffer, "%d", proc_id);
 
 	TraceInfo("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
-	zmq_send(reqServer[distributor].value, sendBuffer, SECRETE_SIZE, 0);
+	zmq_send(reqServer[distributor].value, sendBuffer, 5, 0);
 
 	zmq_recv(reqServer[proc_id].value, result, SECRETE_SIZE, 0);
 	TraceInfo("Received secret from dealer: [%s]\n", result);
@@ -113,9 +113,9 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
  */
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor)
 {
-	char sendBuffer [SECRETE_SIZE];
-	char recvBuffer [SECRETE_SIZE];
-	//int requestor;
+	char sendBuffer[SECRETE_SIZE];
+	char recvBuffer[5];
+	int requestor;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -128,12 +128,12 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i == proc_id) continue;
-		zmq_recv(reqServer[distributor].value, recvBuffer, SECRETE_SIZE, 0);
+		zmq_recv(reqServer[distributor].value, recvBuffer, 5, 0);
 		TraceInfo("Received data as dealer: [%s]\n", recvBuffer);
 
-		//requestor = atoi(recvBuffer);
-		zmq_send(reqServer[i].value, sendBuffer, SECRETE_SIZE, 0);
-		TraceInfo("Send data as dealer to [%d]: [%s]\n", i, sendBuffer);
+		requestor = atoi(recvBuffer);
+		zmq_send(reqServer[requestor].value, sendBuffer, SECRETE_SIZE, 0);
+		TraceInfo("Send data as dealer to [%d]: [%s]\n", requestor, sendBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
@@ -173,3 +173,4 @@ void GradeCast(struct servers reqServer[], struct servers syncServer[], int dist
 	TraceInfo("process[%d] output:code[%d] value:[%d]\n", proc_id, out.code, out.value);
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
+

@@ -49,11 +49,14 @@ void printPolynomials(int badplayers, double polynomials[][badplayers])
 */
 void evaluatePolynomials(int badplayers, double polynomials[][badplayers], double polyEvals[][CONFIDENCE_PARAM])
 {
-	int X = 0;
+	int X = 1;
 
 	for (int i = 0; i < numOfNodes; i++)
+	{
+		X = (X+1) % 3;
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 			polyEvals[i][j] = gsl_poly_eval( polynomials[j], badplayers, X);
+	}
 }
 
 /**
@@ -63,9 +66,11 @@ void printEvaluatedPolys(int numOfNodes, double polyEvals[][CONFIDENCE_PARAM])
 {
 	for (int i = 0; i < numOfNodes; i++)
 	{
+		TraceInfo("node %d ", i);
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
-			TraceInfo("node %d poly %d evaluation is: [%.2f]\n", i, j, polyEvals[i][j]);
+			printf("[%.2f] ", polyEvals[i][j]);
 		}
+		printf("\n");
 	}
 }

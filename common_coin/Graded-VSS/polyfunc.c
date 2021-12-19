@@ -32,10 +32,10 @@ void printPolynomials(int badplayers, double polynomials[][badplayers])
 	for (int i = 0; i < CONFIDENCE_PARAM; i++)
 	{
 		TraceDebug("polynomial %d is:", i);
-		for (int j = 0; j < badPlayers; j++)
+		for (int j = 0; j < badplayers; j++)
 		{
 			printf(" %.2fx^%d",polynomials[i][j], j);
-			if (j != badPlayers - 1) 
+			if (j != badplayers - 1) 
 				printf(" + ");
 		}
 		printf("\n");
@@ -47,23 +47,25 @@ void printPolynomials(int badplayers, double polynomials[][badplayers])
 /**
  * Calculates the polynomial for the given X
 */
-void evaluatePolynomials(int badplayers, double polynomials[][badplayers], double polyEvals[], int X)
+void evaluatePolynomials(int badplayers, double polynomials[][badplayers], double polyEvals[][CONFIDENCE_PARAM])
 {
-	TraceDebug("%s*enter\n", __FUNCTION__);
+	int X = 0;
 
-	for (int i = 0; i < CONFIDENCE_PARAM; i++)
-		polyEvals[i] = gsl_poly_eval( polynomials[i], badPlayers, X);
-
-	TraceDebug("%s*exit\n", __FUNCTION__);
+	for (int i = 0; i < numOfNodes; i++)
+		for (int j = 0; j < CONFIDENCE_PARAM; j++)
+			polyEvals[i][j] = gsl_poly_eval( polynomials[j], badplayers, X);
 }
 
 /**
  * Prints the result from the evaluation.
 */
-void printEvaluatedPolys(double polyEvals[])
+void printEvaluatedPolys(int numOfNodes, double polyEvals[][CONFIDENCE_PARAM])
 {
-	for (int i = 0; i < CONFIDENCE_PARAM; i++)
+	for (int i = 0; i < numOfNodes; i++)
 	{
-		TraceInfo("poly %d evaluation is: [%.2f]\n", i, polyEvals[i]);
+		for (int j = 0; j < CONFIDENCE_PARAM; j++)
+		{
+			TraceInfo("node %d poly %d evaluation is: [%.2f]\n", i, j, polyEvals[i][j]);
+		}
 	}
 }

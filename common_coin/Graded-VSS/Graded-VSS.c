@@ -24,11 +24,10 @@ int main (int argc,char *argv[])
 	badPlayers = numOfNodes/3;
 	char serversIP[numOfNodes][256];
 	char syncIP[numOfNodes][256];
-	struct servers reqServer[numOfNodes];
-	struct servers syncServer[numOfNodes];
-
+	struct servers commonChannel[numOfNodes];
+	struct servers distributorChannel[numOfNodes];
 	double polynomials[CONFIDENCE_PARAM][badPlayers];
-	double polyEvals[CONFIDENCE_PARAM];
+	double polyEvals[numOfNodes][CONFIDENCE_PARAM];
 
 	ValidateInput(argc);
 
@@ -36,7 +35,10 @@ int main (int argc,char *argv[])
 	void *context = zmq_ctx_new();
 
 	//Initialize variables
-	init(context, reqServer, syncServer, serversIP, syncIP);
+	init(context, commonChannel, distributorChannel, serversIP, syncIP);
+
+	memset(polynomials, 0, sizeof(polynomials[0][0]) * CONFIDENCE_PARAM * badPlayers);
+	memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
 
 	if (proc_id == dealer)
 	{
@@ -46,22 +48,25 @@ int main (int argc,char *argv[])
 			printPolynomials(badPlayers, polynomials);
 		#endif
 	
-		evaluatePolynomials(badPlayers, polynomials, polyEvals, 1);
-		printEvaluatedPolys(polyEvals);
+		evaluatePolynomials(badPlayers, polynomials, polyEvals);
+
+		#ifdef DEBUG
+			printEvaluatedPolys(numOfNodes, polyEvals);
+		#endif
 	}
 
-	//exit(0);
+	exit(0);
 
 	//all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
-		GradeCast(reqServer, syncServer, distributor);
+		GradeCast(commonChannel, distributorChannel, distributor);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)
 	{
 		TraceDebug("Closed connection[%d]\n", i);
-		zmq_close(reqServer[i].value);
-		zmq_close(syncServer[i].value);
+		zmq_close(commonChannel[i].value);
+		zmq_close(distributorChannel[i].value);
 	}
 	zmq_ctx_destroy(context);
 	TraceInfo("finished\n");

@@ -155,18 +155,16 @@ void GradeCast(struct servers reqServer[], struct servers syncServer[], int dist
 		sprintf(temp, "%d%s", distributor, "110011011");
 		TraceDebug("%s*secret is:[%s]\n", __FUNCTION__, temp);
 		secret = temp;
-		DistributorDistribute(reqServer, secret, distributor);
+		DistributorDistribute(syncServer, secret, distributor);
 		TraceInfo("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, distributor);
 		Distribute(syncServer, "OK");
 	}
 	else
 	{
-		secret = GetFromDistributor(reqServer, distributor);
+		secret = GetFromDistributor(syncServer, distributor);
 		zmq_recv(syncServer[proc_id].value, temp, SECRETE_SIZE, 0);
 		TraceInfo("Received dummy data[%d]: [%s]\n", proc_id, temp);
 	}
-
-	//sleep(1); //artificial delay so the dealer can distribute the secret to everyone
 
 	Distribute(reqServer, secret);
 	GetMessages(reqServer, secret);

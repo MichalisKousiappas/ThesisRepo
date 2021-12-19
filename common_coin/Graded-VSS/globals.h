@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #define SECRETE_SIZE 15
+#define CONFIDENCE_PARAM 5
 
 struct output
 {
@@ -25,12 +26,12 @@ struct servers{
 };
 
 //Global Variables. This are global since they are for the whole process
-extern  int numOfNodes;
-extern  int dealer;
-extern  int tally;
-extern  int proc_id;
-extern  int badPlayers;
-extern  struct output out;
+extern int numOfNodes;
+extern int dealer;
+extern int tally;
+extern int proc_id;
+extern int badPlayers;
+extern struct output out;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
@@ -40,7 +41,6 @@ extern  struct output out;
 #endif
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
 #define TraceInfo(fmt, ...)	fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
-
 
 //Global Function declaration
 char *GetTime();

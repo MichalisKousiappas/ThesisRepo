@@ -8,6 +8,6 @@ void GetMessages(struct servers reqServer[], const char *secret);
 void ValidateTally();
 char *GetFromDistributor(struct servers reqServer[], int distributor);
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor);
-void GradeCast(struct servers reqServer[], int distributor);
+void GradeCast(struct servers reqServer[], struct servers syncServer[], int distributor);
 
 #endif

@@ -4,14 +4,14 @@
 	Read IP and port from hosts file and fill the
 	the serversIP with the correct values
  */
-void init(char serversIP[][256])
+void ReadIPFromFile(char serversIP[][256], char *filename)
 {
 	FILE *file;
 	char hostsBuffer[150];
 	char *port;
 	char *ip;
 
-	if (!(file = fopen("hosts.txt","r")))
+	if (!(file = fopen(filename,"r")))
 	{
 		perror("Could not open file");exit(-1);
 	}
@@ -97,4 +97,24 @@ void ValidateInput(int argc)
 		printf("number of nodes must be greater than 1\n");
 		exit(-5);
 	}
+}
+
+/**
+ * Initialize variables with the correct values
+*/
+void init(void *context, struct servers reqServer[], struct servers syncServer[], char serversIP[][256], char syncIP[][256])
+{
+	char filename[35] = "hosts.txt";
+	// Fill serversIP
+	ReadIPFromFile(serversIP, filename);
+
+	memcpy(filename, "private.txt", sizeof(filename));
+	// Fill synchronization channels
+	ReadIPFromFile(syncIP, filename);
+
+	//connect to all other nodes
+	PrepareConnections(context, reqServer, serversIP);
+	
+	//connect to all synchronization channels
+	PrepareConnections(context, syncServer, syncIP);
 }

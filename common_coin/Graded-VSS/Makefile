@@ -1,14 +1,15 @@
 # use this makefile since build requires the file to be in the same directory
 # too much of a hasle to figure out how to do it
-ZMQOPTS=-lzmq -lczmq
+ZMQOPTS=-lzmq -lczmq -lgsl -lm
+SRC=globals.c polyfunc.c init.c functions.c Graded-VSS.c
 
 all: Graded-VSS
 
 Graded-VSS:
-	g++ -Wall globals.c init.c functions.c Graded-VSS.c $(ZMQOPTS) -o Graded-VSS.o
+	c99 -Wall $(SRC) $(ZMQOPTS) -o Graded-VSS.o
 
 debug:
-	g++ -Wall globals.c init.c functions.c Graded-VSS.c -DDEBUG $(ZMQOPTS) -o Graded-VSS.o
+	c99 -Wall $(SRC) -DDEBUG $(ZMQOPTS) -o Graded-VSS.o
 
 clean:
 	rm -f Graded-VSS.o

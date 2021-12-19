@@ -29,7 +29,10 @@ void Distribute(struct servers reqServer[], const char *secret)
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
-void GetMessages(struct servers reqServer[], const char *secret)
+/**
+ * Get Message from other nodes and count the tally
+*/
+ void GetMessages(struct servers reqServer[], const char *secret)
 {
 	char recvBuffer[SECRETE_SIZE];
 
@@ -79,6 +82,11 @@ void ValidateTally()
 	tally = 1;
 }
 
+/**
+ * Get Secret from distributor 
+ * distributor is essentailly the dealer but in Graded-VSSs Grade-Cast  
+ * 	the node that wants to cast something is a different node each time
+*/
 char *GetFromDistributor(struct servers reqServer[], int distributor)
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
@@ -107,7 +115,7 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 {
 	char sendBuffer [SECRETE_SIZE];
 	char recvBuffer [SECRETE_SIZE];
-	int requestor;
+	//int requestor;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -123,16 +131,19 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 		zmq_recv(reqServer[distributor].value, recvBuffer, SECRETE_SIZE, 0);
 		TraceInfo("Received data as dealer: [%s]\n", recvBuffer);
 
-		requestor = atoi(recvBuffer);
-		zmq_send(reqServer[requestor].value, sendBuffer, SECRETE_SIZE, 0);
-		TraceInfo("Send data as dealer to [%d]: [%s]\n", requestor, sendBuffer);
+		//requestor = atoi(recvBuffer);
+		zmq_send(reqServer[i].value, sendBuffer, SECRETE_SIZE, 0);
+		TraceInfo("Send data as dealer to [%d]: [%s]\n", i, sendBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
-void GradeCast(struct servers reqServer[], int distributor)
+/**
+ * Grade-Cast for Graded-VSS
+*/
+void GradeCast(struct servers reqServer[], struct servers syncServer[], int distributor)
 {
 	char temp[SECRETE_SIZE] = {0};
 	char *secret = {0};
@@ -145,13 +156,17 @@ void GradeCast(struct servers reqServer[], int distributor)
 		TraceDebug("%s*secret is:[%s]\n", __FUNCTION__, temp);
 		secret = temp;
 		DistributorDistribute(reqServer, secret, distributor);
+		TraceInfo("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, distributor);
+		Distribute(syncServer, "OK");
 	}
 	else
 	{
 		secret = GetFromDistributor(reqServer, distributor);
+		zmq_recv(syncServer[proc_id].value, temp, SECRETE_SIZE, 0);
+		TraceInfo("Received dummy data[%d]: [%s]\n", proc_id, temp);
 	}
 
-	sleep(1); //artificial delay so the dealer can distribute the secret to everyone
+	//sleep(1); //artificial delay so the dealer can distribute the secret to everyone
 
 	Distribute(reqServer, secret);
 	GetMessages(reqServer, secret);

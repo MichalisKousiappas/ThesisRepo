@@ -3,3 +3,4 @@ result*.txt
 *.o
 *.bkp
 *.dmp
+*vscode*

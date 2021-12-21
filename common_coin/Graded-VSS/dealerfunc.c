@@ -10,7 +10,6 @@ char *BuildSecretString(double polyEvals[]);
 */
 char *DealerDistribute(struct servers syncServer[], double polyEvals[][CONFIDENCE_PARAM])
 {
-	char temp[4] = {0};
 	char *result = {0};
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
@@ -20,15 +19,14 @@ char *DealerDistribute(struct servers syncServer[], double polyEvals[][CONFIDENC
 		DealerDistributeSecret(syncServer, polyEvals);
 		
 		// Dealer process builds its own secret instead of sending it to itself
-		result = BuildSecret(polyEvals[dealer]);
+		result = BuildSecretString(polyEvals[dealer]);
 		TraceInfo("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, dealer);
 		Distribute(syncServer, "OK");
 	}
 	else
 	{
 		result = GetFromDistributor(syncServer, dealer);
-		zmq_recv(syncServer[proc_id].value, temp, 3, 0);
-		TraceInfo("Received dummy data[%d]: [%s]\n", proc_id, temp);
+		WaitForDealerSignal(syncServer);
 	}
 
 	TraceInfo("%s*exit\n", __FUNCTION__);

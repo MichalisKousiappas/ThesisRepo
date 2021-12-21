@@ -1,9 +1,12 @@
 #include "functions.h"
 
+//Local Function Declarations
+void ValidateTally(int distributor);
+
 /**
   Send the same message to all other nodes
  */
-void Distribute(struct servers reqServer[], const char *secret)
+void Distribute(struct servers reqServer[], const char *commonString)
 {
 	char sendBuffer[SECRETE_SIZE];
 
@@ -17,7 +20,7 @@ void Distribute(struct servers reqServer[], const char *secret)
 		TraceDebug("%s*I am a traitor hahaha[%d]\n", __FUNCTION__, proc_id);
 	}
 	else
-		sprintf(sendBuffer, "%s", secret);
+		sprintf(sendBuffer, "%s", commonString);
 
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
@@ -32,7 +35,7 @@ void Distribute(struct servers reqServer[], const char *secret)
 /**
  * Get Message from other nodes and count the tally
 */
- void GetMessages(struct servers reqServer[], const char *secret)
+ void GetMessages(struct servers reqServer[], const char *commonString)
 {
 	char recvBuffer[SECRETE_SIZE];
 
@@ -47,7 +50,7 @@ void Distribute(struct servers reqServer[], const char *secret)
 		TraceInfo("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
 
 		// Count the messages that match yours
-		if(recvBuffer[0] && !memcmp(secret, recvBuffer, strlen(recvBuffer)))
+		if(recvBuffer[0] && !memcmp(commonString, recvBuffer, strlen(recvBuffer)))
 		{
 			tally++;
 		}
@@ -59,9 +62,11 @@ void Distribute(struct servers reqServer[], const char *secret)
 /*
    Graded-Cast tally validation
  */
-void ValidateTally()
+void ValidateTally(int distributor)
 {
 	TraceInfo("%s*tally:[%d]\n", __FUNCTION__, tally);
+	struct output out;
+
 	if (tally >= (2*badPlayers + 1))
 	{
 		out.value = tally;
@@ -78,14 +83,17 @@ void ValidateTally()
 		out.code = 0;
 	}
 
+	// Save the outcome of the decision
+	outArray[distributor].code = out.code;
+	outArray[distributor].value = out.value;
+
 	//reset tally
 	tally = 1;
 }
 
 /**
  * Get distributors secret 
- * distributor is the node that initiates Grade-Cast  
- * 	the node is a different node each time
+ * distributor is the node that initiates Grade-Cast or the dealer
 */
 char *GetFromDistributor(struct servers reqServer[], int distributor)
 {
@@ -143,34 +151,58 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 /**
  * Grade-Cast for Graded-VSS
 */
-void GradeCast(struct servers reqServer[], struct servers syncServer[], int distributor)
+void GradeCast(struct servers reqServer[], struct servers syncServer[], int distributor, char *message)
 {
-	char temp[SECRETE_SIZE] = {0};
-	char *secret = {0};
+	char *commonString = {0};
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	if (proc_id == distributor)
 	{
-		sprintf(temp, "%d%s", distributor, "110011011");
-		TraceDebug("%s*secret is:[%s]\n", __FUNCTION__, temp);
-		secret = temp;
-		DistributorDistribute(syncServer, secret, distributor);
+		DistributorDistribute(syncServer, message, distributor);
 		TraceInfo("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, distributor);
+		commonString = message;
 		Distribute(syncServer, "OK");
 	}
 	else
 	{
-		secret = GetFromDistributor(syncServer, distributor);
-		zmq_recv(syncServer[proc_id].value, temp, SECRETE_SIZE, 0);
-		TraceInfo("Received dummy data[%d]: [%s]\n", proc_id, temp);
+		commonString = GetFromDistributor(syncServer, distributor);
+		WaitForDealerSignal(syncServer);
 	}
 
-	Distribute(reqServer, secret);
-	GetMessages(reqServer, secret);
-	ValidateTally();
+	Distribute(reqServer, commonString);
+	GetMessages(reqServer, commonString);
+	ValidateTally(distributor);
 
-	TraceInfo("process[%d] output:code[%d] value:[%d]\n", proc_id, out.code, out.value);
+	TraceInfo("Outcome for distributor[%d] output:code[%d] value:[%d]\n", distributor, outArray[distributor].code, outArray[distributor].value);
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
+/**
+ *	Function that waits for a message to arrive thus avoiding sleep command.  
+ *	Must be paired with Distribue( server, "OK")
+ */
+void WaitForDealerSignal(struct servers syncServer[])
+{
+	char temp[3] = {0};
+
+	TraceInfo("%s*enter\n", __FUNCTION__);
+	zmq_recv(syncServer[proc_id].value, temp, 3, 0);
+	TraceInfo("%s*exit\n", __FUNCTION__);
+}
+
+void SimpleGradedDecide(struct servers reqServer[], struct servers syncServer[], char *secret)
+{
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
+	char tmp[SECRETE_SIZE] = {0};
+
+	//all processes take turn and distribute their "secret"
+	for (int distributor = 0; distributor < numOfNodes; distributor++)
+	{
+		sprintf(tmp, "%d%s", proc_id, "0123");
+		GradeCast(reqServer, syncServer, distributor, tmp);
+	}
+
+	TraceInfo("%s*exit\n", __FUNCTION__);
+}

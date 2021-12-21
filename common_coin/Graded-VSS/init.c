@@ -110,12 +110,15 @@ void init(void *context,
 		double polynomials[CONFIDENCE_PARAM][badPlayers],
 		double polyEvals[numOfNodes][CONFIDENCE_PARAM])
 {
-	char filename[35] = "hosts.txt";
+
+	char filename[35] = {0};
+	
 	// Fill serversIP
+	memcpy(filename, "hosts.txt", sizeof(filename));
 	ReadIPFromFile(serversIP, filename);
 
-	memcpy(filename, "private.txt", sizeof(filename));
 	// Fill synchronization channels
+	memcpy(filename, "private.txt", sizeof(filename));
 	ReadIPFromFile(syncIP, filename);
 
 	//connect to all other nodes
@@ -126,4 +129,7 @@ void init(void *context,
 
 	memset(polynomials, 0, sizeof(polynomials[0][0]) * CONFIDENCE_PARAM * badPlayers);
 	memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
+
+	// Cheap way to make global array with variable length
+	outArray = malloc(numOfNodes * sizeof(struct output));
 }

@@ -15,7 +15,7 @@ int dealer;
 int tally = 1; //count yourself
 int proc_id;
 int badPlayers;
-struct output out = {0, 0};
+struct output *outArray = NULL;
 
 int main (int argc,char *argv[])
 {
@@ -55,11 +55,8 @@ int main (int argc,char *argv[])
 	}
 
 	secret = DealerDistribute(distributorChannel, polyEvals);
-	TraceDebug("process[%d] secret:[%s]\n", proc_id, secret);
 
-	// //all processes take turn and distribute their "secret"
-	// for (int distributor = 0; distributor < numOfNodes; distributor++)
-		// GradeCast(commonChannel, distributorChannel, distributor);
+	SimpleGradedDecide(commonChannel, distributorChannel, secret);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)
@@ -68,6 +65,7 @@ int main (int argc,char *argv[])
 		zmq_close(commonChannel[i].value);
 		zmq_close(distributorChannel[i].value);
 	}
+	free(outArray);
 	zmq_ctx_destroy(context);
 	TraceInfo("finished\n");
 	return 0;

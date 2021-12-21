@@ -31,7 +31,7 @@ extern int dealer;
 extern int tally;
 extern int proc_id;
 extern int badPlayers;
-extern struct output out;
+extern struct output *outArray;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG

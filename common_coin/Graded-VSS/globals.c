@@ -14,3 +14,16 @@ char *GetTime()
 	buf[23] = '\0'; //force null otherwise it will print more than 3 digits
 	return buf;
 }
+
+/**
+ *	Function that waits for a message to arrive thus avoiding sleep command.  
+ *	Must be paired with Distribue( server, "OK")
+ */
+void WaitForDealerSignal(struct servers syncServer[])
+{
+	char temp[3] = {0};
+
+	TraceInfo("%s*enter\n", __FUNCTION__);
+	zmq_recv(syncServer[proc_id].value, temp, 3, 0);
+	TraceInfo("%s*exit[%s]\n", __FUNCTION__, temp);
+}

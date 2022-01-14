@@ -16,6 +16,11 @@ int tally = 1; //count yourself
 int proc_id;
 int badPlayers;
 struct output *outArray = NULL;
+int messages = 0;
+int maxNumberOfMessages;
+int StringSecreteSize;
+int PrimeCongruent;
+int RootOfUnity;
 
 int main (int argc,char *argv[])
 {
@@ -27,36 +32,42 @@ int main (int argc,char *argv[])
 	char syncIP[numOfNodes][256];
 	struct servers commonChannel[numOfNodes];
 	struct servers distributorChannel[numOfNodes];
-	double polynomials[CONFIDENCE_PARAM][badPlayers];
-	double polyEvals[numOfNodes][CONFIDENCE_PARAM];
+	int polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
+	int RootPolynomial[badPlayers];
+	int polyEvals[numOfNodes][numOfNodes][CONFIDENCE_PARAM];
+	int EvaluatedRootPoly[numOfNodes];
 	char *secret;
 
 	ValidateInput(argc);
-
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n", proc_id, numOfNodes, dealer, badPlayers);
 	void *context = zmq_ctx_new();
 
 	//Initialize variables
-	init(context, commonChannel, distributorChannel, serversIP, syncIP, polynomials, polyEvals);
+	init(context, commonChannel, distributorChannel, serversIP, syncIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d] MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%d]\n", 
+			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 
-	if (proc_id == dealer)
+	if (IsDealer)
 	{
-		GenerateRandomPoly(badPlayers, polynomials);
-
-		#ifdef DEBUG
-			printPolynomials(badPlayers, polynomials);
-		#endif
-	
-		evaluatePolynomials(badPlayers, polynomials, polyEvals);
-
-		#ifdef DEBUG
-			printEvaluatedPolys(numOfNodes, polyEvals);
-		#endif
+		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
+		printPolynomials(badPlayers, polynomials, RootPolynomial);
+		evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
+		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
 	}
 
-	secret = DealerDistribute(distributorChannel, polyEvals);
+	secret = SimpleGradedShare(distributorChannel, polyEvals, EvaluatedRootPoly);
 
-	SimpleGradedDecide(commonChannel, distributorChannel, secret);
+	if (proc_id != dealer)
+	{
+		ParseSecret(secret, polyEvals, EvaluatedRootPoly);
+		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
+	}
+
+	SimpleGradedDecide(commonChannel, distributorChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial);
+
+	TraceInfo("total messages send: [%d]\n", messages);
+
+	for(int i = 0; i < numOfNodes; i++)
+		printf("proc_id:[%d] out.code[%d] out.value:[%d]\n", i, outArray[i].code, outArray[i].value);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)

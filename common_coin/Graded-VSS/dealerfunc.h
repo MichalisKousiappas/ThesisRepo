@@ -3,6 +3,6 @@
 
 #include "globals.h"
 
-char *DealerDistribute(struct servers syncServer[], double polyEvals[][CONFIDENCE_PARAM]);
+char *SimpleGradedShare(struct servers syncServer[], int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int EvaluatedRootPoly[]);
 
 #endif

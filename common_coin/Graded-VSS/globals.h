@@ -11,8 +11,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#define SECRETE_SIZE 150
 #define CONFIDENCE_PARAM 5
+#define SECRETE_DELIMITER "|"
+
+//Used to control how big the coeficient of the polyonims can go.
+#define MAX_COEFICIENT 50
 
 struct output
 {
@@ -32,6 +35,11 @@ extern int tally;
 extern int proc_id;
 extern int badPlayers;
 extern struct output *outArray;
+extern int messages;
+extern int maxNumberOfMessages;
+extern int StringSecreteSize;
+extern int PrimeCongruent;
+extern int RootOfUnity;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
@@ -42,7 +50,10 @@ extern struct output *outArray;
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
 #define TraceInfo(fmt, ...)	fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
 
+#define IsDealer (proc_id == dealer)
+
 //Global Function declaration
 char *GetTime();
+void WaitForDealerSignal(struct servers syncServer[]);
 
 #endif

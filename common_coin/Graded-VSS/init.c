@@ -51,7 +51,7 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 	//Create connection to communicate with other processes
 	for(int i = 0; i < numOfNodes; i++)
 	{
-		if (i == proc_id || (proc_id == dealer && i == numOfNodes)) continue;
+		if (i == proc_id || (IsDealer && i == numOfNodes)) continue;
 
 		reqServer[i].value = zmq_socket(context, ZMQ_PUSH);
 		reqServer[i].type = ZMQ_PUSH;
@@ -99,6 +99,44 @@ void ValidateInput(int argc)
 	}
 }
 
+/* 
+ * Utility function to check whether a number is prime or not
+*/
+int isPrime(int n)
+{
+    // Corner case
+    if (n <= 1)
+        return 0;
+ 
+    if (n == 2 || n == 3)
+        return 1;
+ 
+    // Check from 2 to sqrt(n)
+    for (int i = 2; i * i <= n; i++)
+        if (n % i == 0)
+            return 0;
+ 
+    return 1;
+}
+ 
+// finding the Prime numbers
+int getPrimeCongruent()
+{
+    int c1 = 2;
+    int num1;
+ 
+	// Printing n numbers of prime
+	while (1)
+	{
+		// Checking the form of An+1
+		num1 = (c1 * numOfNodes) + 1;
+		if (isPrime(num1) && (num1 > maxNumberOfMessages)) 
+			return num1;
+		c1+=2;
+	}
+}
+
+
 /**
  * Initialize variables with the correct values
 */
@@ -107,10 +145,11 @@ void init(void *context,
 		struct servers syncServer[],
 		char serversIP[][256],
 		char syncIP[][256],
-		double polynomials[CONFIDENCE_PARAM][badPlayers],
-		double polyEvals[numOfNodes][CONFIDENCE_PARAM])
+		int polynomials[][CONFIDENCE_PARAM][badPlayers],
+		int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+		int RootPoly[],
+		int EvaluatedRootPoly[])
 {
-
 	char filename[35] = {0};
 	
 	// Fill serversIP
@@ -127,9 +166,32 @@ void init(void *context,
 	//connect to all synchronization channels
 	PrepareConnections(context, syncServer, syncIP);
 
-	memset(polynomials, 0, sizeof(polynomials[0][0]) * CONFIDENCE_PARAM * badPlayers);
-	memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
+	//memset(polynomials, 0, sizeof(polynomials[0][0]) * numOfNodes * CONFIDENCE_PARAM * badPlayers);
+	//memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
+	for (int l = 0; l< numOfNodes; l++)
+		for (int i = 0; i < CONFIDENCE_PARAM; i++)
+			for (int j = 0; j < badPlayers; j++)
+				polynomials[l][i][j] = 0;
+
+	for (int l = 0; l< numOfNodes; l++)
+		for (int i = 0; i < numOfNodes; i++)
+			for (int j = 0; j < CONFIDENCE_PARAM; j++)
+				polyEvals[l][i][j] = 0;
+
+	for (int i = 0; i < badPlayers; i++)
+		RootPoly[i] = 0;
+	
+	for (int i = 0; i < numOfNodes; i++)
+		EvaluatedRootPoly[i] = 0;
 
 	// Cheap way to make global array with variable length
 	outArray = malloc(numOfNodes * sizeof(struct output));
+	memset(outArray, -1, sizeof(outArray[0]) * numOfNodes);
+	
+	//maximume number of messages. if all processors are good
+	maxNumberOfMessages = numOfNodes * (2*numOfNodes + 1) + 1; //as of now this is the max
+	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(int)) + 1*sizeof(int);
+
+	PrimeCongruent = getPrimeCongruent();
+	RootOfUnity = -1; //leave it as 1 for now
 }

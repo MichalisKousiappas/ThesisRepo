@@ -5,3 +5,5 @@ result*.txt
 *.dmp
 *vscode*
 testing.sh
+a.out
+what.c

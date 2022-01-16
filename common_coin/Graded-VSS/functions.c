@@ -118,7 +118,7 @@ struct output ValidateTally(int tally)
 char *GetFromDistributor(struct servers reqServer[], int distributor)
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
-	char *result = (char*) malloc(StringSecreteSize);
+	char *result = (char*) malloc(StringSecreteSize + 1);
 	char sendBuffer[5];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
@@ -408,6 +408,9 @@ char *BuildMessage(int node, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 			length += snprintf(result+length , StringSecreteSize-length, "%d%s", NewPolynomials[node][j][i], SECRETE_DELIMITER);
 		}
 	}
+
+	//Close the close so parsing can be done correctly
+	length += snprintf(result+length , StringSecreteSize-length, "%s", SECRETE_DELIMITER);
 
 	result[length-1] = '\0';
 

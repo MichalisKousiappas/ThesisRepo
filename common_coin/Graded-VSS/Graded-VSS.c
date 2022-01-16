@@ -42,7 +42,7 @@ int main (int argc,char *argv[])
 
 	//Initialize variables
 	init(context, commonChannel, distributorChannel, serversIP, syncIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d] MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%d]\n", 
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%d]\n", 
 			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 
 	if (IsDealer)

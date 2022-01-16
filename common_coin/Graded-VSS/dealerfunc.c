@@ -20,7 +20,7 @@ char *SimpleGradedShare(struct servers syncServer[], int polyEvals[][numOfNodes]
 
 		// Dealer process builds its own secret instead of sending it to itself
 		result = BuildSecretString(dealer, polyEvals, EvaluatedRootPoly);
-		TraceInfo("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, dealer);
+		TraceDebug("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, dealer);
 		Distribute(syncServer, "OK");
 	}
 	else
@@ -53,6 +53,9 @@ char *BuildSecretString(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		}
 	}
 
+	//Close the close so parsing can be done correctly
+	length += snprintf(result+length , StringSecreteSize-length, "%s", SECRETE_DELIMITER);
+
 	result[length-1] = '\0';
 	return result;
 }
@@ -76,14 +79,14 @@ void DealerDistributeSecret(struct servers reqServer[], int polyEvals[][numOfNod
 	{
 		if (i == proc_id) continue;
 		zmq_recv(reqServer[dealer].value, recvBuffer, 5, 0);
-		TraceInfo("Received data as dealer: [%s]\n", recvBuffer);
+		TraceDebug("Received data as dealer: [%s]\n", recvBuffer);
 		requestor = atoi(recvBuffer);
 
 		// Build secret for each node
 		sprintf(sendBuffer, "%s", BuildSecretString(requestor, polyEvals, EvaluatedRootPoly));
 
 		zmq_send(reqServer[requestor].value, sendBuffer, StringSecreteSize, 0);
-		TraceInfo("Send data as dealer to [%d]: [%s]\n", requestor, sendBuffer);
+		TraceDebug("Send data as dealer to [%d]: [%s]\n", requestor, sendBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;

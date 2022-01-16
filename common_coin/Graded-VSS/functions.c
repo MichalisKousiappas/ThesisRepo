@@ -45,7 +45,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 	{
 		if (i == proc_id) continue;
 		
-		TraceInfo("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
+		TraceDebug("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
 		
 		if (memcmp(commonString, "OK", 2) && commonString[0])
@@ -71,7 +71,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 		if (i == proc_id) continue;
 	
 		zmq_recv(reqServer[proc_id].value, recvBuffer, StringSecreteSize, 0);
-		TraceInfo("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
+		TraceDebug("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
 
 		// Count the messages that match yours
 		if(recvBuffer[0] && !memcmp(commonString, recvBuffer, strlen(recvBuffer)))
@@ -126,12 +126,12 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
 
 	sprintf(sendBuffer, "%d", proc_id);
 
-	TraceInfo("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
+	TraceDebug("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
 	zmq_send(reqServer[distributor].value, sendBuffer, 5, 0);
 //	TraceDebug("awaken\n");
 
 	zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0);
-	TraceInfo("Received secret from dealer: [%s]\n", result);
+	TraceDebug("Received secret from dealer: [%s]\n", result);
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
 	return result;
@@ -159,11 +159,11 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 	{
 		if (i == proc_id) continue;
 		zmq_recv(reqServer[distributor].value, recvBuffer, 5, 0);
-		TraceInfo("Received data as distributor: [%s]\n", recvBuffer);
+		TraceDebug("Received data as distributor: [%s]\n", recvBuffer);
 		requestor = atoi(recvBuffer);
 
 		zmq_send(reqServer[requestor].value, sendBuffer, StringSecreteSize, 0);
-		TraceInfo("Send data as distributor to [%d]: [%s]\n", requestor, sendBuffer);
+		TraceDebug("Send data as distributor to [%d]: [%s]\n", requestor, sendBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;
@@ -186,7 +186,7 @@ char *GradeCast(struct servers reqServer[], struct servers syncServer[], int dis
 	if (proc_id == distributor)
 	{
 		DistributorDistribute(syncServer, message, distributor);
-		TraceInfo("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, distributor);
+		TraceDebug("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, distributor);
 		memcpy(result, message, StringSecreteSize);
 		commonString = result;
 		Distribute(syncServer, "OK");
@@ -308,7 +308,7 @@ char *GetQueryBits(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int 
 
 	if (node != proc_id)
 	{
-		TraceInfo("%s*exit*not my turn yet\n", __FUNCTION__);
+		TraceDebug("%s*exit*not my turn yet\n", __FUNCTION__);
 		return "";
 	}
 
@@ -321,10 +321,10 @@ char *GetQueryBits(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int 
 	{
 		QueryBitsArray[i] = polyEvals[proc_id][proc_id][i] - randomNum;
 		length += snprintf(result+length , StringSecreteSize-length, "%d%s", QueryBitsArray[i], SECRETE_DELIMITER);
-		printf("[%d] ", QueryBitsArray[i]);
 	}
 
-	printf("\n");
+	//Close the close so parsing can be done correctly
+	length += snprintf(result+length , StringSecreteSize-length, "%s", SECRETE_DELIMITER);	
 	result[length-1] = '\0';
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
@@ -371,7 +371,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 				}
 			}
 		}
-		TraceInfo("%s*NEW POLYNOMIALS\n", __FUNCTION__);
+		TraceDebug("%s*NEW POLYNOMIALS\n", __FUNCTION__);
 		printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
 		Distribute(syncServer, "OK");
 	}
@@ -395,7 +395,7 @@ char *BuildMessage(int node, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 
 	if (!IsDealer)
 	{
-		TraceInfo("%s*exit*Not my job\n", __FUNCTION__);
+		TraceDebug("%s*exit*Not my job\n", __FUNCTION__);
 		return "";
 	}
 
@@ -426,25 +426,26 @@ void ParseMessage(int node, char *message, int NewPolynomials[][CONFIDENCE_PARAM
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	
 	char* token = strtok(message, SECRETE_DELIMITER);
-	TraceInfo("%s*token[%d]\n", __FUNCTION__, atoi(token));
+	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
 
 	for (int i = 0; i < CONFIDENCE_PARAM; i++)
 	{
-		printf("\n");
 		for (int j = 0; j < badPlayers; j++)
 		{
 			token = strtok(0, SECRETE_DELIMITER);
 			NewPolynomials[node][i][j] = atoi(token);
-			printf("[%d] ", NewPolynomials[node][i][j]);
 		}
 	}
-	printf("\n");
 	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
 void PrintQueryBits(int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 {
-	printf("Printing Query bits\n");
+	#ifndef DEBUG
+		return;
+	#endif
+
+	printf("\nPrinting Query bits\n");
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		printf("\nnode: %d\n", i);
@@ -481,13 +482,13 @@ int CheckForGoodPiece(int NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 			counter1++;
 			Pij = poly_eval(NewPolynomials[i][j], badPlayers, pow(RootOfUnity, proc_id));
 			TplusQmultiS = polyEvals[proc_id][i][j] + QueryBitsArray[i][j] * EvaluatedRootPoly[proc_id];
-			printf("i:[%d] j:[%d] Pij:[%d] TplusQmulitS:[%d] Qbit:[%d] RootPoly:[%d]\n", i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
+			TraceDebug("i:[%d] j:[%d] Pij:[%d] TplusQmulitS:[%d] Qbit:[%d] RootPoly:[%d]\n", i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 			if (Pij == TplusQmultiS)
 			{
 				counter2++;
 			}
 		}
-		printf("\n");
+		TraceDebug("\n");
 	}
 	res = (counter1 == counter2);
 

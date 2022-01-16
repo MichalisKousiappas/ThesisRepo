@@ -12,7 +12,6 @@
 
 int numOfNodes;
 int dealer;
-int tally = 1; //count yourself
 int proc_id;
 int badPlayers;
 struct output *outArray = NULL;

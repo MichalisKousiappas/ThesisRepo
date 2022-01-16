@@ -2,7 +2,7 @@
 #include "polyfunc.h"
 
 //Local Function Declarations
-void ValidateTally(int distributor);
+struct output ValidateTally(int tally);
 int GetMessages(struct servers reqServer[], const char *commonString);
 char *GetQueryBits(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int QueryBitsArray[]);
 void ParseQueryBitsMessage(char *message, int array[][CONFIDENCE_PARAM]);
@@ -14,6 +14,11 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 char *BuildMessage(int node, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
 void ParseMessage(int node, char *message, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
 void PrintQueryBits(int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM]);
+int CheckForGoodPiece(int NewPolynomials[][CONFIDENCE_PARAM][badPlayers], 
+						int QueryBitsArray[][CONFIDENCE_PARAM],
+						int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						int EvaluatedRootPoly[],
+						int RootPolynomial[badPlayers]);
 
 /**
   Send the same message to all other nodes
@@ -82,7 +87,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 /*
    Graded-Cast tally validation
  */
-void ValidateTally(int distributor)
+struct output ValidateTally(int tally)
 {
 	TraceInfo("%s*tally:[%d]\n", __FUNCTION__, tally);
 	struct output out;
@@ -103,9 +108,7 @@ void ValidateTally(int distributor)
 		out.code = 0;
 	}
 
-	// Save the outcome of the decision
-	outArray[distributor].code = out.code;
-	outArray[distributor].value = out.value;
+	return out;
 }
 
 /**
@@ -175,6 +178,7 @@ char *GradeCast(struct servers reqServer[], struct servers syncServer[], int dis
 {
 	char *commonString = {0};
 	char *result = (char*) malloc(StringSecreteSize);
+	int tally = 1;
 	//int messagesRcv = 0;
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
@@ -207,7 +211,7 @@ char *GradeCast(struct servers reqServer[], struct servers syncServer[], int dis
 	Distribute(reqServer, commonString);
 	tally = GetMessages(reqServer, commonString);
 	*/
-	ValidateTally(distributor);
+	outArray[distributor] = ValidateTally(tally);
 
 	memcpy(result, commonString, strlen(commonString));
 	TraceInfo("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, outArray[distributor].code, outArray[distributor].value);
@@ -229,6 +233,7 @@ void SimpleGradedDecide(struct servers reqServer[],
 	
 	int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
 	int NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
+	int GoodPiece;
 	char *tmp;
 
 	for (int i = 0; i < numOfNodes; i++)
@@ -248,7 +253,6 @@ void SimpleGradedDecide(struct servers reqServer[],
 
 	PrintQueryBits(QueryBitsArray);
 	PrepaireNewPolynomials(syncServer, QueryBitsArray, NewPolynomials, polynomials, RootPolynomial);
-//return;
 
 	printf("-------------------GradeCast phase 2----------------------------\n");
 	//all processes take turn and distribute their "secret"
@@ -261,7 +265,17 @@ void SimpleGradedDecide(struct servers reqServer[],
 			ParseMessage(procNum, tmp, NewPolynomials);
 	}
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
+
+	if (CheckForGoodPiece(NewPolynomials, QueryBitsArray, polyEvals, EvaluatedRootPoly, RootPolynomial))
+		Distribute(reqServer, "GoodPiece");
+	else
+		Distribute(reqServer, "");
+
+	GoodPiece = GetMessages(reqServer, "GoodPiece");
+	ValidateTally(GoodPiece);
+
+	TraceInfo("%s*exit[%d]\n", __FUNCTION__, GoodPiece);
 }
 
 /**
@@ -353,7 +367,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 			{
 				for (int j = 0; j < badPlayers; j++)
 				{
-					NewPolynomials[k][i][j] = polynomials[k][i][j] + QueryBitsArray[k][j] * RootPolynomial[j];
+					NewPolynomials[k][i][j] = polynomials[k][i][j] + QueryBitsArray[k][i] * RootPolynomial[j];
 				}
 			}
 		}
@@ -437,4 +451,48 @@ void PrintQueryBits(int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 		}
 	}
 	printf("\n");	
+}
+
+int CheckForGoodPiece(int NewPolynomials[][CONFIDENCE_PARAM][badPlayers], 
+						int QueryBitsArray[][CONFIDENCE_PARAM],
+						int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						int EvaluatedRootPoly[],
+						int RootPolynomial[badPlayers])
+{
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
+	int Pij, TplusQmultiS;
+	int counter1 = 0, counter2 = 0;
+	int res;
+
+	if (IsDealer)
+		return 1;
+
+	for (int i = 0; i < numOfNodes; i++)
+	{
+		if (outArray[i].code == 0)
+			continue;
+		
+		for (int j = 0; j < CONFIDENCE_PARAM; j++)
+		{
+			counter1++;
+			Pij = poly_eval(NewPolynomials[i][j], badPlayers, pow(RootOfUnity, proc_id));
+			TplusQmultiS = polyEvals[proc_id][i][j] + QueryBitsArray[i][j] * EvaluatedRootPoly[proc_id];
+			printf("i:[%d] j:[%d] Pij:[%d] TplusQmulitS:[%d] Qbit:[%d] RootPoly:[%d]\n", i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
+			if (Pij == TplusQmultiS)
+			{
+				counter2++;
+			}
+		}
+		printf("\n");
+	}
+	res = (counter1 == counter2);
+
+	if (res)
+		RootPolynomial[proc_id] = EvaluatedRootPoly[proc_id];
+	else
+		RootPolynomial[proc_id] = 0;
+
+	TraceInfo("%s*exit[%d]\n", __FUNCTION__, res);
+	return res;
 }

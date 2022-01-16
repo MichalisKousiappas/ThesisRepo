@@ -31,7 +31,6 @@ struct servers{
 //Global Variables. This are global since they are for the whole process
 extern int numOfNodes;
 extern int dealer;
-extern int tally;
 extern int proc_id;
 extern int badPlayers;
 extern struct output *outArray;

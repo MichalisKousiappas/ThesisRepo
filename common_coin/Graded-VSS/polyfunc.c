@@ -1,7 +1,5 @@
 #include "polyfunc.h"
 
-int poly_eval(const int c[], const int len, const double x);
-
 /**
  * Generate Random Polynomials.
  * The number of polynomials is always the confidence param

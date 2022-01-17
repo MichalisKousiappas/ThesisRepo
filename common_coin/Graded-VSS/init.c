@@ -1,4 +1,5 @@
 #include "init.h"
+#include "polyfunc.h"
 
 /*
 	Read IP and port from hosts file and fill the
@@ -148,7 +149,8 @@ void init(void *context,
 		int polynomials[][CONFIDENCE_PARAM][badPlayers],
 		int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		int RootPoly[],
-		int EvaluatedRootPoly[])
+		int EvaluatedRootPoly[],
+		int RootPolynomial[])
 {
 	char filename[35] = {0};
 	
@@ -185,8 +187,8 @@ void init(void *context,
 		EvaluatedRootPoly[i] = 0;
 
 	// Cheap way to make global array with variable length
-	outArray = malloc(numOfNodes * sizeof(struct output));
-	memset(outArray, -1, sizeof(outArray[0]) * numOfNodes);
+	outArray = calloc(numOfNodes, sizeof(struct output));
+	Accept = calloc(numOfNodes, sizeof(struct output));
 	
 	//maximume number of messages. if all processors are good
 	maxNumberOfMessages = numOfNodes * (2*numOfNodes + 1) + 1; //as of now this is the max
@@ -194,4 +196,15 @@ void init(void *context,
 
 	PrimeCongruent = getPrimeCongruent();
 	RootOfUnity = -1; //leave it as 1 for now
+
+	if (IsDealer)
+	{
+		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
+		printPolynomials(badPlayers, polynomials, RootPolynomial);
+		evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
+		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
+	}
+
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%d]\n", 
+			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 }

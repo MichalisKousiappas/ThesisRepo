@@ -14,7 +14,8 @@ int numOfNodes;
 int dealer;
 int proc_id;
 int badPlayers;
-struct output *outArray = NULL;
+struct output *outArray = NULL; // used for Graded-Cast validation
+struct output *Accept = NULL; // used for Graded-Decide validation
 int messages = 0;
 int maxNumberOfMessages;
 int StringSecreteSize;
@@ -41,26 +42,13 @@ int main (int argc,char *argv[])
 	void *context = zmq_ctx_new();
 
 	//Initialize variables
-	init(context, commonChannel, distributorChannel, serversIP, syncIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%d]\n", 
-			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
+	init(context, commonChannel, distributorChannel, serversIP, syncIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly, RootPolynomial);
 
-	if (IsDealer)
-	{
-		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
-		printPolynomials(badPlayers, polynomials, RootPolynomial);
-		evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
-		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
-	}
-
+	// Begin the Graded-Share protocol
 	secret = SimpleGradedShare(distributorChannel, polyEvals, EvaluatedRootPoly);
+	ParseSecret(secret, polyEvals, EvaluatedRootPoly);
 
-	if (proc_id != dealer)
-	{
-		ParseSecret(secret, polyEvals, EvaluatedRootPoly);
-		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
-	}
-
+	// Begin the Graded-Decide protocol
 	SimpleGradedDecide(commonChannel, distributorChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial);
 
 	TraceInfo("total messages send: [%d]\n", messages);

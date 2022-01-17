@@ -34,6 +34,7 @@ extern int dealer;
 extern int proc_id;
 extern int badPlayers;
 extern struct output *outArray;
+extern struct output *Accept;
 extern int messages;
 extern int maxNumberOfMessages;
 extern int StringSecreteSize;

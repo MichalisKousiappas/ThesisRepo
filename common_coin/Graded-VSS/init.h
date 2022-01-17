@@ -11,7 +11,8 @@ void init(void *context,
 		int polynomials[][CONFIDENCE_PARAM][badPlayers], 
 		int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		int RootPoly[],
-		int EvaluatedRootPoly[]);
+		int EvaluatedRootPoly[],
+		int RootPolynomial[]);
 
 void ReadIPFromFile(char serversIP[][256], char *filename);
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256]);

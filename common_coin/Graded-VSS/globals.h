@@ -11,10 +11,12 @@
 #include <time.h>
 #include <unistd.h>
 
-#define CONFIDENCE_PARAM 5
-#define SECRETE_DELIMITER "|"
+#define CONFIDENCE_PARAM 5 // Controls how many polynomials will be generated
+#define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
+#define TRAITORS 0 // Controls whether bad processes will be ON
 
-//Used to control how big the coeficient of the polyonims can go.
+// Used to control how big the coeficient of the polyonims can go.
+// Keep it low so its easy to follow
 #define MAX_COEFICIENT 50
 
 struct output
@@ -39,7 +41,7 @@ extern int messages;
 extern int maxNumberOfMessages;
 extern int StringSecreteSize;
 extern int PrimeCongruent;
-extern int RootOfUnity;
+extern double RootOfUnity;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG

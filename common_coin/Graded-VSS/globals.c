@@ -21,7 +21,7 @@ char *GetTime()
  */
 void WaitForDealerSignal(struct servers syncServer[])
 {
-	char temp[3] = {0};
+	char temp[4] = {0};
 
 	TraceDebug("%s*enter\n", __FUNCTION__);
 	zmq_recv(syncServer[proc_id].value, temp, 3, 0);

@@ -43,18 +43,18 @@ char *BuildSecretString(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 	memset(result, 0, sizeof(StringSecreteSize)-1);
 
 	//Secret starts with the evaluated root polynomial
-	length += snprintf(result+length , StringSecreteSize-length, "%d%s", EvaluatedRootPoly[node], SECRETE_DELIMITER);
+	length += snprintf(result+length , StringSecreteSize-length, "%d%s", EvaluatedRootPoly[node], MESSAGE_DELIMITER);
 
 	for (int j = 0; j < numOfNodes; j++)
 	{
 		for(int i = 0; i < CONFIDENCE_PARAM; i++)
 		{
-			length += snprintf(result+length , StringSecreteSize-length, "%d%s", polyEvals[node][j][i], SECRETE_DELIMITER);
+			length += snprintf(result+length , StringSecreteSize-length, "%d%s", polyEvals[node][j][i], MESSAGE_DELIMITER);
 		}
 	}
 
 	//Close the close so parsing can be done correctly
-	length += snprintf(result+length , StringSecreteSize-length, "%s", SECRETE_DELIMITER);
+	length += snprintf(result+length , StringSecreteSize-length, "%s", MESSAGE_DELIMITER);
 
 	result[length-1] = '\0';
 	return result;
@@ -65,7 +65,7 @@ char *BuildSecretString(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
  */
 void DealerDistributeSecret(struct servers reqServer[], int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int EvaluatedRootPoly[])
 {
-	char sendBuffer[StringSecreteSize];
+	char sendBuffer[StringSecreteSize + 1];
 	char recvBuffer[5];
 	int requestor;
 

@@ -1,6 +1,6 @@
 # use this makefile since build requires the file to be in the same directory
 # too much of a hasle to figure out how to do it
-LIBS=-lzmq -lczmq -lgsl -lm 
+LIBS=-lzmq -lczmq -lgsl -lm -lgsl
 FLAGS=-std=c99
 SRC=globals.c dealerfunc.c polyfunc.c init.c functions.c Graded-VSS.c
 

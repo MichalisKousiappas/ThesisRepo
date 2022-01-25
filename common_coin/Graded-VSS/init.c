@@ -195,7 +195,7 @@ void init(void *context,
 	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(int)) + 1*sizeof(int);
 
 	PrimeCongruent = getPrimeCongruent();
-	RootOfUnity = -1; //leave it as 1 for now
+	RootOfUnity = 1; //leave it as 1 for now
 
 	if (IsDealer)
 	{
@@ -205,6 +205,6 @@ void init(void *context,
 		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
 	}
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%d]\n", 
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%.2f]\n", 
 			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 }

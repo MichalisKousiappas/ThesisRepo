@@ -1,24 +1,30 @@
 #include "functions.h"
 #include "polyfunc.h"
+#include <gsl/gsl_spline.h>
 
 //Local Function Declarations
 struct output ValidateTally(int tally);
 int CountSameMessage(struct servers reqServer[], const char *commonString);
 char *GetQueryBits(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int QueryBitsArray[]);
-void ParseQueryBitsMessage(char *message, int array[][CONFIDENCE_PARAM]);
+int ParseQueryBitsMessage(char *message, int array[][CONFIDENCE_PARAM]);
 void PrepaireNewPolynomials(struct servers syncServer[],
 						int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM],
 						int NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						int polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						int RootPolynomial[badPlayers]);
 char *BuildMessage(int node, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
-void ParseMessage(int node, char *message, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
+int ParseMessage(int node, char *message, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
 void PrintQueryBits(int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM]);
 int CheckForGoodPiece(int NewPolynomials[][CONFIDENCE_PARAM][badPlayers], 
 						int QueryBitsArray[][CONFIDENCE_PARAM],
 						int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 						int EvaluatedRootPoly[],
 						int RootPolynomial[badPlayers]);
+void Traitor(char *sendBuffer);
+int ParsePiece(char *Piece, int RootPolynomial[]);
+void GetPieces(struct servers reqServer[], int RootPolynomial[]);
+double CalculatePolynomial(int EvaluatedRootPoly[]);
+
 
 /**
   Send the same message to all other nodes
@@ -33,11 +39,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 
 	sprintf(sendBuffer, "%s", commonString);
 
-	// if ((proc_id != 0) && (proc_id != dealer) && (proc_id%3 == 0))
-	// {
-	// 	sprintf(sendBuffer, "%d%s", proc_id, "0011011");
-	// 	TraceDebug("%s*I am a traitor hahaha[%d]\n", __FUNCTION__, proc_id);
-	// }
+	Traitor(sendBuffer);
 
 	messages++;
 	//Distribute your message to all other nodes
@@ -59,8 +61,8 @@ void Distribute(struct servers reqServer[], const char *commonString)
 */
  int CountSameMessage(struct servers reqServer[], const char *commonString)
 {
-	char recvBuffer[StringSecreteSize];
-	int res = 0;
+	char recvBuffer[StringSecreteSize + 1];
+	int res = 1; // count yourself
 
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
@@ -127,8 +129,7 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
 	sprintf(sendBuffer, "%d", proc_id);
 
 	TraceDebug("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
-	zmq_send(reqServer[distributor].value, sendBuffer, 5, 0);
-//	TraceDebug("awaken\n");
+	zmq_send(reqServer[distributor].value, sendBuffer, 4, 0);
 
 	zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0);
 	TraceDebug("Received secret from dealer: [%s]\n", result);
@@ -143,7 +144,7 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor)
 {
 	char sendBuffer[StringSecreteSize];
-	char recvBuffer[5];
+	char recvBuffer[6];
 	int requestor;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
@@ -211,7 +212,7 @@ char *GradeCast(struct servers reqServer[], struct servers syncServer[], int dis
 	Distribute(reqServer, commonString);
 	tally = CountSameMessage(reqServer, commonString);
 
-	outArray[distributor] = ValidateTally(tally + 1); // Count yourself when validating the tally
+	outArray[distributor] = ValidateTally(tally);
 
 	memcpy(result, commonString, strlen(commonString));
 	TraceInfo("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, outArray[distributor].code, outArray[distributor].value);
@@ -235,7 +236,7 @@ void SimpleGradedDecide(struct servers reqServer[],
 	int NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
 	int GoodPieceMessages = 0, PassableMessages = 0;
 	char *GradedCastMessage;
-	char DecideMessage[10] = {0};
+	char DecisionMessage[10] = {0};
 
 	for (int i = 0; i < numOfNodes; i++)
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
@@ -249,7 +250,14 @@ void SimpleGradedDecide(struct servers reqServer[],
 		printf("----------------------------------------\n");
 
 		if (outArray[distributor].code > 0)
-			ParseQueryBitsMessage(GradedCastMessage, QueryBitsArray);
+		{
+			// Parse QueryBits, if message seems invalid then reject the sender
+			if (ParseQueryBitsMessage(GradedCastMessage, QueryBitsArray))
+			{
+				outArray[distributor].code = 0;
+			}
+		}
+			
 	}
 
 	// Dealer will create the new polynomials while each node waits for the dealer to finish
@@ -267,21 +275,21 @@ void SimpleGradedDecide(struct servers reqServer[],
 	}
 
 	if (CheckForGoodPiece(NewPolynomials, QueryBitsArray, polyEvals, EvaluatedRootPoly, RootPolynomial))
-		sprintf(DecideMessage, "GoodPiece");
+		sprintf(DecisionMessage, "GoodPiece");
 	else
-		memset(DecideMessage, 0, sizeof(DecideMessage));
+		memset(DecisionMessage, 0, sizeof(DecisionMessage));
 
-	Distribute(reqServer, DecideMessage);
+	Distribute(reqServer, DecisionMessage);
 	GoodPieceMessages = CountSameMessage(reqServer, "GoodPiece");
 
 	if (GoodPieceMessages >= (numOfNodes - badPlayers))
-		sprintf(DecideMessage, "Passable");
+		sprintf(DecisionMessage, "Passable");
 	else
-		memset(DecideMessage, 0, sizeof(DecideMessage));
+		memset(DecisionMessage, 0, sizeof(DecisionMessage));
 
-	Distribute(reqServer, DecideMessage);
+	Distribute(reqServer, DecisionMessage);
 	PassableMessages = CountSameMessage(reqServer, "Passable");
-	Accept[proc_id] = ValidateTally(PassableMessages + 1);
+	Accept[proc_id] = ValidateTally(PassableMessages);
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, PassableMessages);
 }
@@ -295,14 +303,14 @@ void ParseSecret(char *secret, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], in
 	if (IsDealer)
 		return;
 	
-	char* token = strtok(secret, SECRETE_DELIMITER);
+	char* token = strtok(secret, MESSAGE_DELIMITER);
 	EvaluatedRootPoly[proc_id] = atoi(token);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
-			token = strtok(0, SECRETE_DELIMITER);
+			token = strtok(0, MESSAGE_DELIMITER);
 			polyEvals[proc_id][i][j] = atoi(token);
 		}
 	}
@@ -330,16 +338,16 @@ char *GetQueryBits(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int 
 	char *result = (char*) malloc(StringSecreteSize);
 	memset(result, 0, sizeof(StringSecreteSize)-1);
 
-	length += snprintf(result+length , StringSecreteSize-length, "%d%s", proc_id, SECRETE_DELIMITER);
+	length += snprintf(result+length , StringSecreteSize-length, "%d%s", proc_id, MESSAGE_DELIMITER);
 
 	for(int i = 0; i < CONFIDENCE_PARAM; i++)
 	{
 		QueryBitsArray[i] = polyEvals[proc_id][proc_id][i] - randomNum;
-		length += snprintf(result+length , StringSecreteSize-length, "%d%s", QueryBitsArray[i], SECRETE_DELIMITER);
+		length += snprintf(result+length , StringSecreteSize-length, "%d%s", QueryBitsArray[i], MESSAGE_DELIMITER);
 	}
 
 	//Close the close so parsing can be done correctly
-	length += snprintf(result+length , StringSecreteSize-length, "%s", SECRETE_DELIMITER);	
+	length += snprintf(result+length , StringSecreteSize-length, "%s", MESSAGE_DELIMITER);	
 	result[length-1] = '\0';
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
@@ -350,16 +358,30 @@ char *GetQueryBits(int node, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int 
  * Parse the secret received from dealer and store it into array.
  * The secret are the evaulation of the polyonims
  */
-void ParseQueryBitsMessage(char *message, int array[][CONFIDENCE_PARAM])
+int ParseQueryBitsMessage(char *message, int array[][CONFIDENCE_PARAM])
 {
-	char* token = strtok(message, SECRETE_DELIMITER);
+	if (message[strlen(message) - 1] != '|')
+	{
+		TraceInfo("%s*exit*Invalid Query Bits\n", __FUNCTION__);
+		return 1;
+	}
+
+	char* token = strtok(message, MESSAGE_DELIMITER);
 	int Process_id = atoi(token);
 
 	for (int j = 0; j < CONFIDENCE_PARAM; j++)
 	{
-		token = strtok(0, SECRETE_DELIMITER);
-		array[Process_id][j] = atoi(token);
+		token = strtok(0, MESSAGE_DELIMITER);
+		if (token != NULL)
+			array[Process_id][j] = atoi(token);
+		else
+		{
+			TraceInfo("%s*exit*Invalid Query Bits\n", __FUNCTION__);
+			return 1;
+		}
 	}
+
+	return 0;
 }
 
 /**
@@ -417,18 +439,18 @@ char *BuildMessage(int node, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 		return "";
 	}
 
-	length += snprintf(result+length , StringSecreteSize-length, "%d%s", node, SECRETE_DELIMITER);
+	length += snprintf(result+length , StringSecreteSize-length, "%d%s", node, MESSAGE_DELIMITER);
 
 	for (int j = 0; j < CONFIDENCE_PARAM; j++)
 	{
 		for(int i = 0; i < badPlayers; i++)
 		{
-			length += snprintf(result+length , StringSecreteSize-length, "%d%s", NewPolynomials[node][j][i], SECRETE_DELIMITER);
+			length += snprintf(result+length , StringSecreteSize-length, "%d%s", NewPolynomials[node][j][i], MESSAGE_DELIMITER);
 		}
 	}
 
 	//Close the close so parsing can be done correctly
-	length += snprintf(result+length , StringSecreteSize-length, "%s", SECRETE_DELIMITER);
+	length += snprintf(result+length , StringSecreteSize-length, "%s", MESSAGE_DELIMITER);
 
 	result[length-1] = '\0';
 
@@ -439,24 +461,41 @@ char *BuildMessage(int node, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 /**
  * Parse the message received from dealer in step 2.
  */
-void ParseMessage(int node, char *message, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
-{	
+int ParseMessage(int node, char *message, int NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
+{
+	if (message[strlen(message) - 1] != '|')
+	{
+		TraceInfo("%s*exit*Invalid Message\n", __FUNCTION__);
+		return 1;
+	}
+
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	
-	char* token = strtok(message, SECRETE_DELIMITER);
+	char* token = strtok(message, MESSAGE_DELIMITER);
 	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
 
 	for (int i = 0; i < CONFIDENCE_PARAM; i++)
 	{
 		for (int j = 0; j < badPlayers; j++)
 		{
-			token = strtok(0, SECRETE_DELIMITER);
-			NewPolynomials[node][i][j] = atoi(token);
+			token = strtok(0, MESSAGE_DELIMITER);
+			if (token != NULL)
+				NewPolynomials[node][i][j] = atoi(token);
+			else
+			{
+				TraceInfo("%s*exit*Invalid Message\n", __FUNCTION__);
+				return 1;
+			}
 		}
 	}
+	
 	TraceInfo("%s*exit\n", __FUNCTION__);
+	return 0;
 }
 
+/**
+ * Prints the Query bits
+ */
 void PrintQueryBits(int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 {
 	#ifndef DEBUG
@@ -475,6 +514,9 @@ void PrintQueryBits(int QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 	printf("\n");	
 }
 
+/**
+ * Check if math checks out.
+ */
 int CheckForGoodPiece(int NewPolynomials[][CONFIDENCE_PARAM][badPlayers], 
 						int QueryBitsArray[][CONFIDENCE_PARAM],
 						int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
@@ -496,27 +538,157 @@ int CheckForGoodPiece(int NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 	{
 		if (outArray[i].code == 0)
 			continue;
-		
+
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
 			counter1++;
 			Pij = poly_eval(NewPolynomials[i][j], badPlayers, pow(RootOfUnity, proc_id));
 			TplusQmultiS = polyEvals[proc_id][i][j] + QueryBitsArray[i][j] * EvaluatedRootPoly[proc_id];
-			TraceDebug("i:[%d] j:[%d] Pij:[%d] TplusQmulitS:[%d] Qbit:[%d] RootPoly:[%d]\n", i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
+
+			// Enable in case you want excesive debugging. Don't forget the \n
+			//TraceDebug("i:[%d] j:[%d] Pij:[%d] TplusQmulitS:[%d] Qbit:[%d] RootPoly:[%d]\n", i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 			if (Pij == TplusQmultiS)
 			{
 				counter2++;
 			}
 		}
-		TraceDebug("\n");
+		//TraceDebug("\n");
 	}
 	res = (counter1 == counter2);
 
-	if (res)
-		RootPolynomial[proc_id] = EvaluatedRootPoly[proc_id];
-	else
-		RootPolynomial[proc_id] = 0;
+	if (!res)
+		EvaluatedRootPoly[proc_id] = 0;
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, res);
 	return res;
 }
+
+/**
+ * Simulate traitor processes.
+ */
+void Traitor(char *sendBuffer)
+{
+	if (!TRAITORS)
+		return;
+
+	if ((proc_id != 0) && (proc_id != dealer) && (proc_id%3 == 0))
+	{
+		sprintf(sendBuffer, "%d%s", proc_id, "0011011");
+		TraceDebug("%s*I am a traitor hahaha[%d]\n", __FUNCTION__, proc_id);
+	}
+}
+
+
+void SimpleGradedRecover(struct servers reqServer[], int EvaluatedRootPoly[])
+{
+	char Piece[15] = {0};
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
+	sprintf(Piece, "%d%s%d%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
+	Distribute(reqServer, Piece);
+	GetPieces(reqServer, EvaluatedRootPoly);
+	
+	for (int i = 0; i < numOfNodes; i++)
+		printf("i:[%d] Si:[%d]\n", i, EvaluatedRootPoly[i]);
+
+	double finale = CalculatePolynomial(EvaluatedRootPoly);
+	TraceInfo("%s*exit*finale[%.3f]\n", __FUNCTION__, finale);
+}
+
+/**
+ * Receive the pieces of Simple Graded - Recover phase
+*/
+ void GetPieces(struct servers reqServer[], int EvaluatedRootPoly[])
+{
+	char recvBuffer[StringSecreteSize + 1];
+	memset(recvBuffer, 0, sizeof(recvBuffer));
+
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
+	for (int i = 0; i < numOfNodes; i++)
+	{
+		if (i == proc_id || outArray[i].code == 0) continue;
+
+		zmq_recv(reqServer[proc_id].value, recvBuffer, StringSecreteSize, 0);
+		TraceDebug("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
+
+		if (ParsePiece(recvBuffer, EvaluatedRootPoly))
+			i--;
+
+		memset(recvBuffer, 0, sizeof(recvBuffer));
+	}
+
+	TraceInfo("%s*exit\n", __FUNCTION__);
+}
+
+/**
+ * Parse the message received from dealer in step 2.
+ */
+int ParsePiece(char *Piece, int EvaluatedRootPoly[])
+{
+	TraceInfo("%s*enter\n", __FUNCTION__);
+	
+	if (Piece[strlen(Piece) - 1] != '|')
+	{
+		TraceInfo("%s*exit*Invalid Piece\n", __FUNCTION__);
+		return 1;
+	}
+
+	char* token = strtok(Piece, MESSAGE_DELIMITER);
+	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
+	int Process = atoi(token);
+
+	token = strtok(0, MESSAGE_DELIMITER);
+	if (token != NULL)
+		EvaluatedRootPoly[Process] = atoi(token);
+	else
+	{
+		TraceInfo("%s*exit*Invalid Piece\n", __FUNCTION__);
+		return 1;
+	}
+
+	TraceInfo("%s*exit\n", __FUNCTION__);
+	return 0;
+}
+
+double CalculatePolynomial(int EvaluatedRootPoly[])
+{
+	double X_1[numOfNodes + 1];
+	double Y_1[numOfNodes + 1];
+	double result;
+
+	X_1[0] = 0;
+	Y_1[0] = 0;
+	for (int i = 1; i < numOfNodes + 1; i++)
+	{
+		X_1[i] = pow(RootOfUnity, i - 1);
+		Y_1[i] = EvaluatedRootPoly[i - 1];
+	}
+
+	printf("\n");
+	for (int i = 0; i < numOfNodes + 1; i++)
+		printf("Xi[%f] ", X_1[i]);
+	printf("\n");
+	
+	for (int i = 1; i < numOfNodes + 1; i++) 
+	{
+		if (!(X_1[i-1] < X_1[i])) 
+		{
+			TraceInfo("yo yo wtf ?? i:[%d] (i-1)[%f] < [%f]\n", i, X_1[i-1], X_1[i]);
+			return -1;
+		}
+	}
+	TraceInfo("Looks good to me\n");
+
+    gsl_interp_accel *acc = gsl_interp_accel_alloc();
+    gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, numOfNodes + 1);
+
+    gsl_spline_init (spline, X_1, Y_1, numOfNodes + 1);
+
+	result = gsl_spline_eval(spline, 0, acc);
+	gsl_spline_free(spline);
+	gsl_interp_accel_free(acc);
+
+	return result;
+}
+

@@ -8,6 +8,7 @@
 #include "gradeddecide.h"
 #include "init.h"
 #include "gradedshare.h"
+#include "gradedrecover.h"
 
 int numOfNodes;
 int dealer;

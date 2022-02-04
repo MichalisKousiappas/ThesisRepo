@@ -1,5 +1,4 @@
 #include "gradedshare.h"
-#include "gradeddecide.h"
 
 // Local Declarations
 void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[]);
@@ -117,4 +116,45 @@ char *GetFromDealer(struct servers reqServer[])
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
 	return result;
+}
+
+/**
+ * Parse the secret received from dealer.
+ */
+int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
+{
+	// Dealer process does not need to parse the secret
+	if (IsDealer)
+		return 0;
+
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
+	if (secret[strlen(secret) - 1] != '|')
+	{
+		TraceInfo("%s*exit*Invalid Secret\n", __FUNCTION__);
+		return 1;
+	}
+
+	char* token = strtok(secret, MESSAGE_DELIMITER);
+	EvaluatedRootPoly[proc_id] = strtod(token, NULL);
+
+	for (int i = 0; i < numOfNodes; i++)
+	{
+		for (int j = 0; j < CONFIDENCE_PARAM; j++)
+		{
+			token = strtok(0, MESSAGE_DELIMITER);
+			if (token != NULL)
+				polyEvals[proc_id][i][j] = strtod(token, NULL);
+			else
+			{
+				TraceInfo("%s*exit*Invalid Secret[%d][%d]\n", __FUNCTION__,i, j);
+				return 1;
+			}
+		}
+	}
+
+	// When debugging is on, printf the parsed message
+	printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
+	TraceInfo("%s*exit\n", __FUNCTION__);
+	return 0;
 }

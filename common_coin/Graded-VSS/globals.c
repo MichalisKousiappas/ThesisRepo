@@ -29,6 +29,48 @@ void WaitForDealerSignal(struct servers syncServer[])
 }
 
 /**
+ * Simulate traitor processes.
+ */
+void Traitor(char *sendBuffer)
+{
+	if (TRAITORS && (proc_id != 0) && (proc_id != dealer) && (proc_id%3 == 0))
+	{
+		sprintf(sendBuffer, "%d%s", proc_id, "0011011");
+		TraceDebug("%s*I am a traitor hahaha[%d]\n", __FUNCTION__, proc_id);
+	}
+}
+
+/**
+  Send the same message to all other nodes -- Doesn't wait for an answer
+ */
+void Distribute(struct servers reqServer[], const char *commonString)
+{
+	char sendBuffer[StringSecreteSize];
+
+	memset(sendBuffer, 0, sizeof(sendBuffer));
+
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
+	sprintf(sendBuffer, "%s", commonString);
+
+	if (memcmp(commonString, "OK", 2) && commonString[0])
+		messages++;
+
+	//Distribute your message to all other nodes
+	for (int i = 0; i < numOfNodes; i++)
+	{
+		if (i == proc_id) continue;
+
+		TraceDebug("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
+		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
+
+		if (memcmp(commonString, "OK", 2) && commonString[0])
+			messages++;
+	}
+	TraceInfo("%s*exit\n", __FUNCTION__);
+}
+
+/**
  *	Function to sort two parallel arrays based on the first array
  */
 void parallel_array_merge_sort(int i, int j, double a[], double aux[], double b[], double bux[])

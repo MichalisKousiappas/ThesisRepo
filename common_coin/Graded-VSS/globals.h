@@ -63,5 +63,7 @@ extern double RootOfUnity;
 char *GetTime();
 void WaitForDealerSignal(struct servers syncServer[]);
 void parallel_array_merge_sort(int i, int j, double a[], double aux[], double b[], double bux[]);
+void Traitor(char *sendBuffer);
+void Distribute(struct servers reqServer[], const char *commonString);
 
 #endif

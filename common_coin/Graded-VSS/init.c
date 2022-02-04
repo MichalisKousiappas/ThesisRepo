@@ -2,6 +2,9 @@
 #include "polyfunc.h"
 #include <complex.h>
 
+void ReadIPFromFile(char serversIP[][256], char *filename);
+void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256]);
+
 /*
 	Read IP and port from hosts file and fill the
 	the serversIP with the correct values

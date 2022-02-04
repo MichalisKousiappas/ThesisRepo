@@ -5,7 +5,7 @@
  * The number of polynomials is always the confidence param
  * and the degree is the number of bad players
 */
-void GenerateRandomPoly(int badplayers, int polynomials[][CONFIDENCE_PARAM][badplayers], int RootPoly[])
+void GenerateRandomPoly(int badplayers, double polynomials[][CONFIDENCE_PARAM][badplayers], double RootPoly[])
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
@@ -33,7 +33,7 @@ void GenerateRandomPoly(int badplayers, int polynomials[][CONFIDENCE_PARAM][badp
 /**
  * Prints all Polynomials.
 */
-void printPolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badplayers], int RootPoly[])
+void printPolynomials(int badplayers, double polynomials[][CONFIDENCE_PARAM][badplayers], double RootPoly[])
 {
 	#ifndef DEBUG
 		return;
@@ -44,7 +44,7 @@ void printPolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badpla
 	printf("Root polynomial:\n");
 	for (int j = 0; j < badplayers; j++)
 	{
-		printf(" %dx^%d",RootPoly[j], j);
+		printf(" %fx^%d", RootPoly[j], j);
 		if (j != badplayers - 1) 
 			printf(" + ");
 	}
@@ -58,7 +58,7 @@ void printPolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badpla
 			printf("\t\tpolynomial %d is:", i);
 			for (int j = 0; j < badplayers; j++)
 			{
-				printf(" %dx^%d",polynomials[l][i][j], j);
+				printf(" %fx^%d", polynomials[l][i][j], j);
 				if (j != badplayers - 1) 
 					printf(" + ");
 			}
@@ -72,20 +72,29 @@ void printPolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badpla
 /**
  * Calculates the polynomial for the given X
 */
-void evaluatePolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badplayers], int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int RootPoly[], int EvaluatedRootPoly[])
+void evaluatePolynomials(int badplayers, 
+						double polynomials[][CONFIDENCE_PARAM][badplayers],
+						double polyEvals[][numOfNodes][CONFIDENCE_PARAM], 
+						double RootPoly[], 
+						double EvaluatedRootPoly[])
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
+	double X;
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		int X = (int) pow(RootOfUnity, i);
-		EvaluatedRootPoly[i] = poly_eval(RootPoly, badplayers, X);
-		TraceDebug("node [%d] evaluated with [%d]\n", i, X);
+		if (i != 0)
+			X = pow(RootOfUnity, i);
+		else
+			X = pow(RootOfUnity, numOfNodes);
+
+		EvaluatedRootPoly[i] = gsl_poly_eval(RootPoly, badplayers, X);
+		TraceDebug("node [%d] evaluated with [%f]\n", i, X);
 		for (int l = 0; l < numOfNodes; l++)
 		{
 			for (int j = 0; j < CONFIDENCE_PARAM; j++)
 			{
-				polyEvals[i][l][j] = poly_eval(polynomials[l][j], badplayers, X);
+				polyEvals[i][l][j] = gsl_poly_eval(polynomials[l][j], badplayers, X);
 			}		
 		}
 	}
@@ -96,7 +105,7 @@ void evaluatePolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][bad
 /**
  * Prints the result from the evaluation.
 */
-void printEvaluatedPolys(int numOfNodes, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int EvalRootPoly[])
+void printEvaluatedPolys(int numOfNodes, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvalRootPoly[])
 {
 	#ifndef DEBUG
 		return;
@@ -111,12 +120,12 @@ void printEvaluatedPolys(int numOfNodes, int polyEvals[][numOfNodes][CONFIDENCE_
 			continue;
 
 		TraceInfo("node %d\n", i);
-		printf("RootPoly: [%d]\n", EvalRootPoly[i]);
+		printf("RootPoly: [%f]\n", EvalRootPoly[i]);
 		for (int l = 0; l < numOfNodes; l++)
 		{
 			for (int j = 0; j < CONFIDENCE_PARAM; j++)
 			{
-				printf("[%d] ", polyEvals[i][l][j]);
+				printf("[%f] ", polyEvals[i][l][j]);
 			}
 			printf("\n");
 		}
@@ -125,6 +134,7 @@ void printEvaluatedPolys(int numOfNodes, int polyEvals[][numOfNodes][CONFIDENCE_
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
+/*
 int poly_eval(const int c[], const int len, const double x)
 {
   int i;
@@ -132,3 +142,4 @@ int poly_eval(const int c[], const int len, const double x)
   for(i=len-1; i>0; i--) ans = c[i-1] + x * ans;
   return ans;
 }
+*/

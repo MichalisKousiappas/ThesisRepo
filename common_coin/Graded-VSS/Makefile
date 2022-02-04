@@ -2,16 +2,16 @@
 # too much of a hasle to figure out how to do it
 LIBS=-lzmq -lczmq -lgsl -lm -lgsl
 FLAGS=-std=c99
-SRC=globals.c dealerfunc.c polyfunc.c init.c functions.c Graded-VSS.c
+SRC=globals.c gradedshare.c polyfunc.c init.c gradeddecide.c Graded-VSS.c
 
 all: Graded-VSS
 
 Graded-VSS:
-	gcc -Wall $(SRC) $(LIBS) $(FLAGS) -o Graded-VSS.o
+	@gcc -Wall $(SRC) $(LIBS) $(FLAGS) -o Graded-VSS.o
 
 debug:
-	gcc -Wall $(SRC) -DDEBUG $(LIBS) $(FLAGS) -o Graded-VSS.o
+	@gcc -Wall $(SRC) -DDEBUG $(LIBS) $(FLAGS) -o Graded-VSS.o
 
 clean:
-	rm -f Graded-VSS.o
-	rm -f result*.dmp
+	@rm -f Graded-VSS.o
+	@rm -f result*.dmp

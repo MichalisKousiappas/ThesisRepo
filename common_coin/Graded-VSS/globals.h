@@ -9,15 +9,20 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
-#include <unistd.h>
 
 #define CONFIDENCE_PARAM 5 // Controls how many polynomials will be generated
 #define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
 #define TRAITORS 0 // Controls whether bad processes will be ON
 
-// Used to control how big the coeficient of the polyonims can go.
-// Keep it low so its easy to follow
-#define MAX_COEFICIENT 50
+/* 
+ Used to control how big the coeficient of the polyonims can go.
+ Keep it low so its easy to follow
+*/
+#define MAX_COEFICIENT 100
+
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
 
 struct output
 {
@@ -57,5 +62,6 @@ extern double RootOfUnity;
 //Global Function declaration
 char *GetTime();
 void WaitForDealerSignal(struct servers syncServer[]);
+void parallel_array_merge_sort(int i, int j, double a[], double aux[], double b[], double bux[]);
 
 #endif

@@ -1,5 +1,6 @@
 #include "init.h"
 #include "polyfunc.h"
+#include <complex.h>
 
 /*
 	Read IP and port from hosts file and fill the
@@ -137,39 +138,33 @@ int getPrimeCongruent()
 	}
 }
 
+double RoundDouble(double var)
+{
+    double value = (int)(var * 10000 + .5);
+    return (double)value / 10000;
+}
 
 /**
  * Initialize variables with the correct values
 */
 void init(void *context, 
 		struct servers reqServer[],
-		struct servers syncServer[],
 		char serversIP[][256],
-		char syncIP[][256],
-		int polynomials[][CONFIDENCE_PARAM][badPlayers],
-		int polyEvals[][numOfNodes][CONFIDENCE_PARAM],
-		int RootPoly[],
-		int EvaluatedRootPoly[],
-		int RootPolynomial[])
+		double polynomials[][CONFIDENCE_PARAM][badPlayers],
+		double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+		double RootPoly[],
+		double EvaluatedRootPoly[],
+		double RootPolynomial[])
 {
 	char filename[35] = {0};
-	
+
 	// Fill serversIP
 	memcpy(filename, "hosts.txt", sizeof(filename));
 	ReadIPFromFile(serversIP, filename);
 
-	// Fill synchronization channels
-	memcpy(filename, "private.txt", sizeof(filename));
-	ReadIPFromFile(syncIP, filename);
-
 	//connect to all other nodes
 	PrepareConnections(context, reqServer, serversIP);
-	
-	//connect to all synchronization channels
-	PrepareConnections(context, syncServer, syncIP);
 
-	//memset(polynomials, 0, sizeof(polynomials[0][0]) * numOfNodes * CONFIDENCE_PARAM * badPlayers);
-	//memset(polyEvals, 0, sizeof(polyEvals[0][0]) * numOfNodes * CONFIDENCE_PARAM);
 	for (int l = 0; l< numOfNodes; l++)
 		for (int i = 0; i < CONFIDENCE_PARAM; i++)
 			for (int j = 0; j < badPlayers; j++)
@@ -191,11 +186,25 @@ void init(void *context,
 	Accept = calloc(numOfNodes, sizeof(struct output));
 	
 	//maximume number of messages. if all processors are good
-	maxNumberOfMessages = numOfNodes * (2*numOfNodes + 1) + 1; //as of now this is the max
-	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(int)) + 1*sizeof(int);
+	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
+	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(double));
 
 	PrimeCongruent = getPrimeCongruent();
-	RootOfUnity = 1; //leave it as 1 for now
+
+	srand(time(0));
+	int k = rand() % numOfNodes;
+	RootOfUnity = cexp(2 * M_PI * I * k / numOfNodes);
+	
+	/* 
+	 * Rout must be negative otherwise GSL interpolation won't work.
+	 * the reason is that GSL can't calculate for a point outside of the graph points.
+	 * if we don't have a negative root then we don't cross point 0 thus we can't solve F(0)
+	*/
+	if (RootOfUnity > 0)
+		RootOfUnity = (RootOfUnity*-1) + 0.0001;
+
+	// Round the root to 4 decimals
+	RoundDouble(RootOfUnity);
 
 	if (IsDealer)
 	{
@@ -205,6 +214,6 @@ void init(void *context,
 		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
 	}
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%.2f]\n", 
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f]\n", 
 			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 }

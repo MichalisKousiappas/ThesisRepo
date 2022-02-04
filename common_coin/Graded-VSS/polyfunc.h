@@ -2,12 +2,18 @@
 #define POLYFUNC_H
 
 #include "globals.h"
+#include <gsl/gsl_poly.h>
 #include <math.h>
 
-void printEvaluatedPolys(int numOfNodes, int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int RootPoly[]);
-void evaluatePolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badplayers], int polyEvals[][numOfNodes][CONFIDENCE_PARAM], int RootPoly[], int EvaluatedRootPoly[]);
-void printPolynomials(int badplayers, int polynomials[][CONFIDENCE_PARAM][badplayers], int RootPoly[]);
-void GenerateRandomPoly(int badplayers, int polynomials[][CONFIDENCE_PARAM][badplayers], int RootPoly[]);
-int poly_eval(const int c[], const int len, const double x);
+void printEvaluatedPolys(int numOfNodes, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double RootPoly[]);
+void evaluatePolynomials(int badplayers,
+						double polynomials[][CONFIDENCE_PARAM][badplayers],
+						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						double RootPoly[],
+						double EvaluatedRootPoly[]);
+void printPolynomials(int badplayers, double polynomials[][CONFIDENCE_PARAM][badplayers], double RootPoly[]);
+void GenerateRandomPoly(int badplayers, double polynomials[][CONFIDENCE_PARAM][badplayers], double RootPoly[]);
+
+//int poly_eval(const int c[], const int len, const double x);
 
 #endif

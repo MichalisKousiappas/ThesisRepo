@@ -9,10 +9,20 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
+#include <gsl/gsl_poly.h>
+#include <gsl/gsl_complex.h>
+#include <gsl/gsl_complex_math.h>
 
 #define CONFIDENCE_PARAM 5 // Controls how many polynomials will be generated
+/* 
+	The common delimiters in messages to separete values. 
+*/
+#define ALL_MESSAGE_DELIMITERS "|:" 
+
 #define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
-#define TRAITORS 0 // Controls whether bad processes will be ON
+#define COMPLEX_DELIMITER ":" // The common delimiter in messages to separete real and imaginary numbers
+
+#define TRAITORS 0 // Controls whether bad processes will be ON/OFF 1/0
 
 /* 
  Used to control how big the coeficient of the polyonims can go.
@@ -46,16 +56,17 @@ extern int messages;
 extern int maxNumberOfMessages;
 extern int StringSecreteSize;
 extern int PrimeCongruent;
-extern double RootOfUnity;
+extern gsl_complex RootOfUnity;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
-#define TraceDebug(fmt, ...) fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
+#define TraceDebug(fmt, ...) do{fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 #else
 #define TraceDebug(fmt, ...) ((void)0)
 #endif
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
-#define TraceInfo(fmt, ...)	fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
+#define TraceInfo(fmt, ...)	do{fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
+#define TraceError(fmt, ...)	do{fprintf(stdout,"ERROR  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 
 #define IsDealer (proc_id == dealer)
 

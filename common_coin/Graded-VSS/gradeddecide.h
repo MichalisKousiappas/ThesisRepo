@@ -4,8 +4,8 @@
 #include "globals.h"
 
 void SimpleGradedDecide(struct servers reqServer[],
-						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
-						double EvaluatedRootPoly[],
+						gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						gsl_complex EvaluatedRootPoly[],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers]);
 

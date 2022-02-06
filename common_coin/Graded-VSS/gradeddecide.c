@@ -3,35 +3,35 @@
 #include "gradecast.h"
 
 //Local Function Declarations
-char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[]);
-int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM]);
+char *GetQueryBits(int node, gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex QueryBitsArray[]);
+int ParseQueryBitsMessage(char *message, gsl_complex array[][CONFIDENCE_PARAM]);
 void PrepaireNewPolynomials(struct servers syncServer[],
-						double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM],
-						double NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
+						gsl_complex QueryBitsArray[numOfNodes][CONFIDENCE_PARAM],
+						gsl_complex NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers]);
-char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
-int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
-void PrintQueryBits(double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM]);
-int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
-						double QueryBitsArray[][CONFIDENCE_PARAM],
-						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
-						double EvaluatedRootPoly[],
+char *BuildMessage(int node, gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
+int ParseMessage(int node, char *message, gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
+void PrintQueryBits(gsl_complex QueryBitsArray[numOfNodes][CONFIDENCE_PARAM]);
+int CheckForGoodPiece(gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
+						gsl_complex QueryBitsArray[][CONFIDENCE_PARAM],
+						gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						gsl_complex EvaluatedRootPoly[],
 						double RootPolynomial[badPlayers]);
 
 /**
  * Start the Simple Graded - Decide phase
  */
 void SimpleGradedDecide(struct servers reqServer[],
-						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
-						double EvaluatedRootPoly[],
+						gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						gsl_complex EvaluatedRootPoly[],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
-	double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
-	double NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
+	gsl_complex QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
+	gsl_complex NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
 	int GoodPieceMessages = 0, PassableMessages = 0;
 	char *GradedCastMessage;
 	char DecisionMessage[10] = {0};
@@ -39,7 +39,7 @@ void SimpleGradedDecide(struct servers reqServer[],
 
 	for (int i = 0; i < numOfNodes; i++)
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
-			QueryBitsArray[i][j] = 0;
+			GSL_SET_COMPLEX(&QueryBitsArray[i][j], 0, 0);
 
 	printf("-------------------SimpleGraded Decide phase 1----------------------------\n");
 	// all processes take turn and distribute their "secret"
@@ -99,11 +99,13 @@ void SimpleGradedDecide(struct servers reqServer[],
  * Random Query bits means check if bit 2 & 3 for example are set which is just
  * more complicated than just substracting a random number from all your numbers
  */
-char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[])
+char *GetQueryBits(int node, gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex QueryBitsArray[])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	int length = 0;
-	int randomNum = rand() % (MAX_COEFICIENT/2);
+	gsl_complex randomNum;
+	GSL_REAL(randomNum) = rand() % (MAX_COEFICIENT/2);
+	GSL_IMAG(randomNum) = rand() % (MAX_COEFICIENT/2);
 
 	if (node != proc_id)
 	{
@@ -118,8 +120,12 @@ char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], d
 
 	for(int i = 0; i < CONFIDENCE_PARAM; i++)
 	{
-		QueryBitsArray[i] = polyEvals[proc_id][proc_id][i] - randomNum;
-		length += snprintf(result+length , StringSecreteSize-length, "%f%s", QueryBitsArray[i], MESSAGE_DELIMITER);
+		QueryBitsArray[i] = gsl_complex_sub(polyEvals[proc_id][proc_id][i], randomNum);
+		length += snprintf(result+length , StringSecreteSize-length, "%f%s%f%s", 
+							GSL_REAL(QueryBitsArray[i]),
+							COMPLEX_DELIMITER,
+							GSL_IMAG(QueryBitsArray[i]),
+							MESSAGE_DELIMITER);
 	}
 
 	Traitor(result);
@@ -136,7 +142,7 @@ char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], d
  * Parse the secret received from dealer and store it into array.
  * The secret are the evaulation of the polyonims
  */
-int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM])
+int ParseQueryBitsMessage(char *message, gsl_complex array[][CONFIDENCE_PARAM])
 {
 	printf("ParseQueryBitsMessage [%s] size:[%ld]\n", message, strlen(message));
 	if (message[strlen(message) - 1] != '|')
@@ -145,18 +151,23 @@ int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM])
 		return 1;
 	}
 
-	char* token = strtok(message, MESSAGE_DELIMITER);
+	char* token = strtok(message, ALL_MESSAGE_DELIMITERS);
 	int Process_id = atoi(token);
 
 	for (int j = 0; j < CONFIDENCE_PARAM; j++)
 	{
-		token = strtok(0, MESSAGE_DELIMITER);
-		if (token != NULL)
-			array[Process_id][j] = strtod(token, NULL);
-		else
+		for(int d = 0; d < 2; d++)
 		{
-			TraceInfo("%s*exit*Invalid Query Bits[%d]\n", __FUNCTION__, j);
-			return 1;
+			token = strtok(0, ALL_MESSAGE_DELIMITERS);
+			if (token != NULL && d == 0)
+				GSL_REAL(array[Process_id][j]) = strtod(token, NULL);
+			else if (token != NULL && d == 1)
+				GSL_IMAG(array[Process_id][j]) = strtod(token, NULL);
+			else
+			{
+				TraceInfo("%s*exit*Invalid Query Bits[%d]\n", __FUNCTION__, j);
+				return 1;
+			}
 		}
 	}
 
@@ -168,13 +179,14 @@ int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM])
  * to check if the secrete is passable or not
 */
 void PrepaireNewPolynomials(struct servers syncServer[],
-						double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM],
-						double NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
+						gsl_complex QueryBitsArray[numOfNodes][CONFIDENCE_PARAM],
+						gsl_complex NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
+	gsl_complex QBitsMultiRootPoly;
 	// Print the Query bits you have when debugging info is on
 	PrintQueryBits(QueryBitsArray);
 
@@ -186,12 +198,13 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 			{
 				for (int j = 0; j < badPlayers; j++)
 				{
-					NewPolynomials[k][i][j] = polynomials[k][i][j] + QueryBitsArray[k][i] * RootPolynomial[j];
+					QBitsMultiRootPoly = gsl_complex_mul_real(QueryBitsArray[k][i], RootPolynomial[j]);
+					NewPolynomials[k][i][j] = gsl_complex_add_real(QBitsMultiRootPoly, polynomials[k][i][j]);
 				}
 			}
 		}
 		TraceDebug("%s*NEW POLYNOMIALS\n", __FUNCTION__);
-		printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
+		printComplexPolynomials(badPlayers, NewPolynomials, RootPolynomial);
 		Distribute(syncServer, "OK");
 	}
 	else
@@ -205,7 +218,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 /**
  * Builds the new polynomials to be send.
 */
-char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
+char *BuildMessage(int node, gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	int length = 0;
@@ -224,7 +237,11 @@ char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayer
 	{
 		for(int i = 0; i < badPlayers; i++)
 		{
-			length += snprintf(result+length , StringSecreteSize-length, "%f%s", NewPolynomials[node][j][i], MESSAGE_DELIMITER);
+			length += snprintf(result+length , StringSecreteSize-length, "%f%s%f%s", 
+					GSL_REAL(NewPolynomials[node][j][i]),
+					COMPLEX_DELIMITER,
+					GSL_IMAG(NewPolynomials[node][j][i]),
+					MESSAGE_DELIMITER);
 		}
 	}
 
@@ -240,7 +257,7 @@ char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayer
 /**
  * Parse the message received from dealer in step 2.
  */
-int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
+int ParseMessage(int node, char *message, gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 {
 	printf("ParseMessage [%s] size:[%ld]\n", message, strlen(message));
 	if (message[strlen(message) - 1] != '|')
@@ -258,13 +275,18 @@ int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PAR
 	{
 		for (int j = 0; j < badPlayers; j++)
 		{
-			token = strtok(0, MESSAGE_DELIMITER);
-			if (token != NULL)
-				NewPolynomials[node][i][j] = strtod(token, NULL);
-			else
+			for(int d = 0; d < 2; d++)
 			{
-				TraceInfo("%s*exit*Invalid Message[%d][%d]\n", __FUNCTION__,i, j);
-				return 1;
+				token = strtok(0, ALL_MESSAGE_DELIMITERS);
+				if (token != NULL && d == 0)
+					GSL_REAL(NewPolynomials[node][i][j]) = strtod(token, NULL);
+				else if (token != NULL && d == 1)
+					GSL_IMAG(NewPolynomials[node][i][j]) = strtod(token, NULL);
+				else
+				{
+					TraceInfo("%s*exit*Invalid Secret[%d][%d]\n", __FUNCTION__,i, j);
+					return 1;
+				}
 			}
 		}
 	}
@@ -276,7 +298,7 @@ int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PAR
 /**
  * Prints the Query bits
  */
-void PrintQueryBits(double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
+void PrintQueryBits(gsl_complex QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 {
 	#ifndef DEBUG
 		return;
@@ -288,7 +310,7 @@ void PrintQueryBits(double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 		printf("\nnode: %d\n", i);
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
-			printf("[%f] ", QueryBitsArray[i][j]);
+			printf("[%f%+fi] ", GSL_REAL(QueryBitsArray[i][j]), GSL_IMAG(QueryBitsArray[i][j]));
 		}
 	}
 	printf("\n");
@@ -297,20 +319,20 @@ void PrintQueryBits(double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM])
 /**
  * Check if math checks out.
  */
-int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
-						double QueryBitsArray[][CONFIDENCE_PARAM],
-						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
-						double EvaluatedRootPoly[],
+int CheckForGoodPiece(gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
+						gsl_complex QueryBitsArray[][CONFIDENCE_PARAM],
+						gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+						gsl_complex EvaluatedRootPoly[],
 						double RootPolynomial[badPlayers])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
-	double Pij, TplusQmultiS;
+	gsl_complex Pij, TplusQmultiS;
 	int counter1 = 0, counter2 = 0;
 	int res;
 	int power;
 
-	printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
+	printComplexPolynomials(badPlayers, NewPolynomials, RootPolynomial);
 
 	if (proc_id == 0)
 		power = numOfNodes;
@@ -328,27 +350,28 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 		{
 			counter1++;
 
-			Pij = gsl_poly_eval(NewPolynomials[i][j], badPlayers, pow(RootOfUnity, power));
-			TplusQmultiS = polyEvals[proc_id][i][j] + QueryBitsArray[i][j] * EvaluatedRootPoly[proc_id];
-			TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
-			i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
+			Pij = gsl_complex_poly_complex_eval(NewPolynomials[i][j], badPlayers, gsl_complex_pow_real(RootOfUnity, power));
+			TplusQmultiS = gsl_complex_add(polyEvals[proc_id][i][j], gsl_complex_mul(QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]));
 
-			// limit the precision check to 2 bits instead of 4. This is because the calculations can't be this precise
-			if ( fabs(Pij - TplusQmultiS) <= 0.0001)
-			{
+			TraceDebug("i:[%d] j:[%d] Pij:[%f%+fi] TplusQmulitS:[%f%+fi] Qbit:[%f%+fi] RootPoly:[%f%+fi]\n",
+						i, j,
+						GSL_REAL(Pij), GSL_IMAG(Pij), 
+						GSL_REAL(TplusQmultiS), GSL_IMAG(TplusQmultiS), 
+						GSL_REAL(QueryBitsArray[i][j]), GSL_IMAG(QueryBitsArray[i][j]), 
+						GSL_REAL(EvaluatedRootPoly[proc_id]), GSL_IMAG(EvaluatedRootPoly[proc_id]));
+
+			// limit the precision check to 3 bits instead of 4. This is because the calculations can't be this precise
+			if (AreComplexEqual(Pij, TplusQmultiS, 4))
 				counter2++;
-			}
 			else
-			{
 				TraceDebug("Error here\n");
-			}
 		}
 		printf("\n");
 	}
 	res = ((counter1 == counter2) && (counter1 != 0));
 
 	if (!res)
-		EvaluatedRootPoly[proc_id] = 0;
+		GSL_SET_COMPLEX(&EvaluatedRootPoly[proc_id], 0, 0);
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, res);
 	return res;

@@ -3,31 +3,38 @@
 #include <gsl/gsl_errno.h>
 #include "polyfunc.h"
 
-int ParsePiece(char *Piece, double RootPolynomial[]);
-void GetPieces(struct servers reqServer[], double RootPolynomial[]);
-double CalculatePolynomial(double EvaluatedRootPoly[]);
+int ParsePiece(char *Piece, gsl_complex RootPolynomial[]);
+void GetPieces(struct servers reqServer[], gsl_complex RootPolynomial[]);
+//gsl_complex CalculatePolynomial(gsl_complex EvaluatedRootPoly[]);
+void printTables(int size, gsl_complex X_1[], gsl_complex Y_1[]);
 
-void SimpleGradedRecover(struct servers reqServer[], double EvaluatedRootPoly[])
+void SimpleGradedRecover(struct servers reqServer[], gsl_complex EvaluatedRootPoly[])
 {
 	char Piece[StringSecreteSize];
 	memset(Piece, 0, StringSecreteSize);
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
-	sprintf(Piece, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
+	sprintf(Piece, "%d%s%f%s%+f%s", proc_id, 
+			MESSAGE_DELIMITER, 
+			GSL_REAL(EvaluatedRootPoly[proc_id]),
+			COMPLEX_DELIMITER,
+			GSL_IMAG(EvaluatedRootPoly[proc_id]),
+			MESSAGE_DELIMITER);
+
 	Distribute(reqServer, Piece);
 	GetPieces(reqServer, EvaluatedRootPoly);
 
 	for (int i = 0; i < numOfNodes; i++)
-		printf("i:[%d] Si:[%f]\n", i, EvaluatedRootPoly[i]);
+		printf("i:[%d] Si:[%f%+fi]\n", i, GSL_REAL(EvaluatedRootPoly[i]), GSL_IMAG(EvaluatedRootPoly[i]));
 
-	double finale = CalculatePolynomial(EvaluatedRootPoly);
-	TraceInfo("%s*exit*finale[%f]\n", __FUNCTION__, round(finale));
+//	gsl_complex finale = CalculatePolynomial(EvaluatedRootPoly);
+//	TraceInfo("%s*exit*finale[%f%+fi]\n", __FUNCTION__, GSL_REAL(finale), GSL_IMAG(finale));
 }
 
 /**
  * Receive the pieces of Simple Graded - Recover phase
 */
- void GetPieces(struct servers reqServer[], double EvaluatedRootPoly[])
+ void GetPieces(struct servers reqServer[], gsl_complex EvaluatedRootPoly[])
 {
 	char recvBuffer[StringSecreteSize + 1];
 	memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -51,7 +58,7 @@ void SimpleGradedRecover(struct servers reqServer[], double EvaluatedRootPoly[])
 /**
  * Parse the message received from dealer in step 2.
  */
-int ParsePiece(char *Piece, double EvaluatedRootPoly[])
+int ParsePiece(char *Piece, gsl_complex EvaluatedRootPoly[])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
@@ -61,7 +68,7 @@ int ParsePiece(char *Piece, double EvaluatedRootPoly[])
 		return 1;
 	}
 
-	char* token = strtok(Piece, MESSAGE_DELIMITER);
+	char* token = strtok(Piece, ALL_MESSAGE_DELIMITERS);
 	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
 	int Process = atoi(token);
 
@@ -71,20 +78,25 @@ int ParsePiece(char *Piece, double EvaluatedRootPoly[])
 		return 1;
 	}
 
-	token = strtok(0, MESSAGE_DELIMITER);
-	if (token != NULL)
-		EvaluatedRootPoly[Process] = strtod(token, NULL);
-	else
+	for(int d = 0; d < 2; d++)
 	{
-		TraceInfo("%s*exit*Invalid Piece 2\n", __FUNCTION__);
-		return 1;
+		token = strtok(0, ALL_MESSAGE_DELIMITERS);
+		if (token != NULL && d == 0)
+			GSL_REAL(EvaluatedRootPoly[Process]) = strtod(token, NULL);
+		else if (token != NULL && d == 1)
+			GSL_IMAG(EvaluatedRootPoly[Process]) = strtod(token, NULL);
+		else
+		{
+			TraceInfo("%s*exit*Invalid Piece 2\n", __FUNCTION__);
+			return 1;
+		}
 	}
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
 	return 0;
 }
 
-void printTables(int size, double X_1[], double Y_1[])
+void printTables(int size, gsl_complex X_1[], gsl_complex Y_1[])
 {
 	#ifndef DEBUG
 		return;
@@ -92,46 +104,49 @@ void printTables(int size, double X_1[], double Y_1[])
 
 	printf("\n");
 	for (int i = 0; i < size; i++)
-		printf("Xi[%f] ", X_1[i]);
+		printf("Xi[%f%+fi] ", GSL_REAL(X_1[i]), GSL_IMAG(X_1[i]));
 	printf("\n");
 	for (int i = 0; i < size; i++)
-		printf("Yi[%f] ", Y_1[i]);
+		printf("Xi[%f%+fi] ", GSL_REAL(Y_1[i]), GSL_IMAG(Y_1[i]));
 	printf("\n");
 }
 
-double CalculatePolynomial(double EvaluatedRootPoly[])
+/*
+gsl_complex CalculatePolynomial(gsl_complex EvaluatedRootPoly[])
 {
 	int size = 0;
 	int counter = 0;
 	int status;
+	gsl_complex result;
+
+	GSL_SET_COMPLEX(&result, 0, 0);
 
 	for (int i = 0; i < numOfNodes; i++)
-		if (outArray[i].code != 0 && (fabs(EvaluatedRootPoly[i]) >= 0.0001))
+		if (outArray[i].code != 0)
 			size++;
 
 	TraceDebug("%s*size:[%d]\n",__FUNCTION__, size);
 
-	if (size <= 0)
+	if (size < (numOfNodes - badPlayers))
 	{
 		TraceInfo("I can't do this man...\n");
-		return 0;
+		return result;
 	}
 
-	double X_1[size], dummy_X[size];
-	double Y_1[size], dummy_Y[size];
-	double result;
+	gsl_complex X_1[size], dummy_X[size];
+	gsl_complex Y_1[size], dummy_Y[size];
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (outArray[i].code > 0  && i == 0)
 		{
-			X_1[i] = pow(RootOfUnity, numOfNodes);
+			X_1[i] = gsl_complex_pow_real(RootOfUnity, numOfNodes);
 			Y_1[i] = EvaluatedRootPoly[i];
 			counter++;
 		}
 		else if (outArray[i].code > 0 )
 		{
-			X_1[counter] = pow(RootOfUnity, i);
+			X_1[counter] = gsl_complex_pow_real(RootOfUnity, i);
 			Y_1[counter] = EvaluatedRootPoly[i];
 			counter++;
 		}
@@ -151,7 +166,8 @@ double CalculatePolynomial(double EvaluatedRootPoly[])
 	if (status)
 	{
 		TraceInfo("Interpolation cannot be performed. ErrorCode[%d] Description:[%s]\n", status, gsl_strerror(status));
-		return 0;
+		GSL_SET_COMPLEX(&result, 0, 0);
+		return result;
 	}
 
 	result = gsl_spline_eval(spline, 0, acc);
@@ -160,3 +176,4 @@ double CalculatePolynomial(double EvaluatedRootPoly[])
 
 	return result;
 }
+*/

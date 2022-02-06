@@ -3,6 +3,6 @@
 
 #include "globals.h"
 
-void SimpleGradedRecover(struct servers reqServer[], double RootPolynomial[]);
+void SimpleGradedRecover(struct servers reqServer[], gsl_complex RootPolynomial[]);
 
 #endif

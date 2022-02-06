@@ -4,7 +4,7 @@
 #include "globals.h"
 #include "polyfunc.h"
 
-char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[]);
-int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[]);
+char *SimpleGradedShare(struct servers syncServer[], gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[]);
+int ParseSecret(char *secret, gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[]);
 
 #endif

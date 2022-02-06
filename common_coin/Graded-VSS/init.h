@@ -7,9 +7,9 @@ void init(void *context,
 		struct servers reqServer[],
 		char serversIP[][256],
 		double polynomials[][CONFIDENCE_PARAM][badPlayers],
-		double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+		gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		double RootPoly[],
-		double EvaluatedRootPoly[],
+		gsl_complex EvaluatedRootPoly[],
 		double RootPolynomial[]);
 
 void ValidateInput(int argc);

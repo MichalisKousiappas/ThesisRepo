@@ -20,7 +20,7 @@ int messages = 0;
 int maxNumberOfMessages;
 int StringSecreteSize;
 int PrimeCongruent;
-double RootOfUnity;
+gsl_complex RootOfUnity;
 
 int main (int argc,char *argv[])
 {
@@ -32,8 +32,8 @@ int main (int argc,char *argv[])
 	struct servers commonChannel[numOfNodes];
 	double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
 	double RootPolynomial[badPlayers];
-	double polyEvals[numOfNodes][numOfNodes][CONFIDENCE_PARAM];
-	double EvaluatedRootPoly[numOfNodes];
+	gsl_complex polyEvals[numOfNodes][numOfNodes][CONFIDENCE_PARAM];
+	gsl_complex EvaluatedRootPoly[numOfNodes];
 	char *secret;
 
 	ValidateInput(argc);

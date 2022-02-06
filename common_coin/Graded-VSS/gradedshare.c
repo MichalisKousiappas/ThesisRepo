@@ -1,14 +1,14 @@
 #include "gradedshare.h"
 
 // Local Declarations
-void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[]);
-char *BuildSecretString(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[]);
+void DealerDistributeSecret(struct servers reqServer[], gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[]);
+char *BuildSecretString(int node, gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[]);
 char *GetFromDealer(struct servers reqServer[]);
 
 /**
  * Dealer distribute the polynomial evaluations for each node
 */
-char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
+char *SimpleGradedShare(struct servers syncServer[], gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[])
 {
 	char *result = NULL;
 
@@ -36,20 +36,28 @@ char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNod
 /**
  * Builds the Dealers secret to each node
 */
-char *BuildSecretString(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
+char *BuildSecretString(int node, gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[])
 {
 	int length = 0;
 	char *result = (char*) malloc(StringSecreteSize);
 	memset(result, 0, StringSecreteSize);
 
 	//Secret starts with the evaluated root polynomial
-	length += snprintf(result+length , StringSecreteSize-length, "%f%s", EvaluatedRootPoly[node], MESSAGE_DELIMITER);
+	length += snprintf(result+length , StringSecreteSize-length, "%f%s%f%s", 
+						GSL_REAL(EvaluatedRootPoly[node]), 
+						COMPLEX_DELIMITER, 
+						GSL_IMAG(EvaluatedRootPoly[node]), 
+						MESSAGE_DELIMITER);
 
 	for (int j = 0; j < numOfNodes; j++)
 	{
 		for(int i = 0; i < CONFIDENCE_PARAM; i++)
 		{
-			length += snprintf(result+length , StringSecreteSize-length, "%f%s", polyEvals[node][j][i], MESSAGE_DELIMITER);
+			length += snprintf(result+length , StringSecreteSize-length, "%f%s%f%s", 
+								GSL_REAL(polyEvals[node][j][i]),
+								COMPLEX_DELIMITER,
+								GSL_IMAG(polyEvals[node][j][i]),
+								MESSAGE_DELIMITER);
 		}
 	}
 
@@ -63,7 +71,7 @@ char *BuildSecretString(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARA
 /**
   Send the same message to all other nodes
  */
-void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
+void DealerDistributeSecret(struct servers reqServer[], gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[])
 {
 	char sendBuffer[StringSecreteSize + 1];
 	char recvBuffer[56];
@@ -121,7 +129,7 @@ char *GetFromDealer(struct servers reqServer[])
 /**
  * Parse the secret received from dealer.
  */
-int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
+int ParseSecret(char *secret, gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM], gsl_complex EvaluatedRootPoly[])
 {
 	// Dealer process does not need to parse the secret
 	if (IsDealer)
@@ -135,20 +143,27 @@ int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], 
 		return 1;
 	}
 
-	char* token = strtok(secret, MESSAGE_DELIMITER);
-	EvaluatedRootPoly[proc_id] = strtod(token, NULL);
+	char* token = strtok(secret, ALL_MESSAGE_DELIMITERS);
+	GSL_REAL(EvaluatedRootPoly[proc_id]) = strtod(token, NULL);
+	token = strtok(0, ALL_MESSAGE_DELIMITERS);
+	GSL_IMAG(EvaluatedRootPoly[proc_id]) = strtod(token, NULL);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
-			token = strtok(0, MESSAGE_DELIMITER);
-			if (token != NULL)
-				polyEvals[proc_id][i][j] = strtod(token, NULL);
-			else
+			for(int d = 0; d < 2; d++)
 			{
-				TraceInfo("%s*exit*Invalid Secret[%d][%d]\n", __FUNCTION__,i, j);
-				return 1;
+				token = strtok(0, ALL_MESSAGE_DELIMITERS);
+				if (token != NULL && d == 0)
+					GSL_REAL(polyEvals[proc_id][i][j]) = strtod(token, NULL);
+				else if (token != NULL && d == 1)
+					GSL_IMAG(polyEvals[proc_id][i][j]) = strtod(token, NULL);
+				else
+				{
+					TraceInfo("%s*exit*Invalid Secret[%d][%d]\n", __FUNCTION__,i, j);
+					return 1;
+				}
 			}
 		}
 	}

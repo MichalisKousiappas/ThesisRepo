@@ -1,6 +1,6 @@
 #include "init.h"
 #include "polyfunc.h"
-#include <complex.h>
+
 
 void ReadIPFromFile(char serversIP[][256], char *filename);
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256]);
@@ -123,7 +123,7 @@ int isPrime(int n)
  
     return 1;
 }
- 
+
 // finding the Prime numbers
 int getPrimeCongruent()
 {
@@ -154,9 +154,9 @@ void init(void *context,
 		struct servers reqServer[],
 		char serversIP[][256],
 		double polynomials[][CONFIDENCE_PARAM][badPlayers],
-		double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
+		gsl_complex polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		double RootPoly[],
-		double EvaluatedRootPoly[],
+		gsl_complex EvaluatedRootPoly[],
 		double RootPolynomial[])
 {
 	char filename[35] = {0};
@@ -176,39 +176,44 @@ void init(void *context,
 	for (int l = 0; l< numOfNodes; l++)
 		for (int i = 0; i < numOfNodes; i++)
 			for (int j = 0; j < CONFIDENCE_PARAM; j++)
-				polyEvals[l][i][j] = 0;
+				GSL_SET_COMPLEX(&polyEvals[l][i][j], 0, 0);
 
 	for (int i = 0; i < badPlayers; i++)
 		RootPoly[i] = 0;
 	
 	for (int i = 0; i < numOfNodes; i++)
-		EvaluatedRootPoly[i] = 0;
+		GSL_SET_COMPLEX(&EvaluatedRootPoly[i], 0, 0);
 
 	// Cheap way to make global array with variable length
 	outArray = calloc(numOfNodes, sizeof(struct output));
 	Accept = calloc(numOfNodes, sizeof(struct output));
-	
+
 	//maximume number of messages. if all processors are good
 	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
-	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(double));
+	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * 2*sizeof(double));
 
 	PrimeCongruent = getPrimeCongruent();
 
 	srand(time(0));
 	int k = rand() % numOfNodes;
-	RootOfUnity = cexp(2 * M_PI * I * k / numOfNodes);
-	
-	/* 
+	//RootOfUnity = cexp(2 * M_PI * I * k / numOfNodes);
+	RootOfUnity = gsl_complex_polar(1, 2 * M_PI * k / numOfNodes);
+	GSL_REAL(RootOfUnity) = fmod(GSL_REAL(RootOfUnity), PrimeCongruent);
+	GSL_IMAG(RootOfUnity) = fmod(GSL_IMAG(RootOfUnity), PrimeCongruent);
+
+/* Commented out since it might not be needed after all
+	 
 	 * Rout must be negative otherwise GSL interpolation won't work.
 	 * the reason is that GSL can't calculate for a point outside of the graph points.
 	 * if we don't have a negative root then we don't cross point 0 thus we can't solve F(0)
-	*/
+	
 	if (RootOfUnity > 0)
 		RootOfUnity = (RootOfUnity*-1) + 0.0001;
 
 	// Round the root to 4 decimals
-	RoundDouble(RootOfUnity);
+	//RoundDouble(RootOfUnity);
 
+*/
 	if (IsDealer)
 	{
 		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
@@ -217,6 +222,6 @@ void init(void *context,
 		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
 	}
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f]\n", 
-			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f%+fi]\n", 
+			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, GSL_REAL(RootOfUnity), GSL_IMAG(RootOfUnity));
 }

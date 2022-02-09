@@ -2,11 +2,28 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_errno.h>
 #include "polyfunc.h"
+#include <gsl/gsl_fft_complex.h>
+
+#define SET_REAL(z,i) ((z)[2*(i)])
+#define SET_IMAG(z,i) ((z)[2*(i)+1])
 
 int ParsePiece(char *Piece, gsl_complex RootPolynomial[]);
 void GetPieces(struct servers reqServer[], gsl_complex RootPolynomial[]);
-//gsl_complex CalculatePolynomial(gsl_complex EvaluatedRootPoly[]);
+double CalculatePolynomial(gsl_complex EvaluatedRootPoly[]);
 void printTables(int size, gsl_complex X_1[], gsl_complex Y_1[]);
+
+int GetNextPowerOfTwo(int x)
+{
+    if (!((x != 0) && ((x & (x - 1)) == 0)))
+	{
+		int power = 1;
+		while(power < x)
+			power*=2;
+	
+		return power;
+	}
+	return x;
+}
 
 void SimpleGradedRecover(struct servers reqServer[], gsl_complex EvaluatedRootPoly[])
 {
@@ -27,8 +44,8 @@ void SimpleGradedRecover(struct servers reqServer[], gsl_complex EvaluatedRootPo
 	for (int i = 0; i < numOfNodes; i++)
 		printf("i:[%d] Si:[%f%+fi]\n", i, GSL_REAL(EvaluatedRootPoly[i]), GSL_IMAG(EvaluatedRootPoly[i]));
 
-//	gsl_complex finale = CalculatePolynomial(EvaluatedRootPoly);
-//	TraceInfo("%s*exit*finale[%f%+fi]\n", __FUNCTION__, GSL_REAL(finale), GSL_IMAG(finale));
+	double finale = CalculatePolynomial(EvaluatedRootPoly);
+	TraceInfo("%s*exit*finale[%f]\n", __FUNCTION__, finale);
 }
 
 /**
@@ -111,15 +128,14 @@ void printTables(int size, gsl_complex X_1[], gsl_complex Y_1[])
 	printf("\n");
 }
 
-/*
-gsl_complex CalculatePolynomial(gsl_complex EvaluatedRootPoly[])
+double CalculatePolynomial(gsl_complex EvaluatedRootPoly[])
 {
 	int size = 0;
 	int counter = 0;
 	int status;
-	gsl_complex result;
+	int FFTsize = 0;
 
-	GSL_SET_COMPLEX(&result, 0, 0);
+	//GSL_SET_COMPLEX(&result, 0, 0);
 
 	for (int i = 0; i < numOfNodes; i++)
 		if (outArray[i].code != 0)
@@ -130,34 +146,29 @@ gsl_complex CalculatePolynomial(gsl_complex EvaluatedRootPoly[])
 	if (size < (numOfNodes - badPlayers))
 	{
 		TraceInfo("I can't do this man...\n");
-		return result;
+		return 0;
 	}
 
-	gsl_complex X_1[size], dummy_X[size];
-	gsl_complex Y_1[size], dummy_Y[size];
+	FFTsize = GetNextPowerOfTwo(size);
+	double FFTData[FFTsize*2];
+	memset(FFTData, 0, FFTsize*2);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if (outArray[i].code > 0  && i == 0)
+		if (outArray[i].code > 0 )
 		{
-			X_1[i] = gsl_complex_pow_real(RootOfUnity, numOfNodes);
-			Y_1[i] = EvaluatedRootPoly[i];
-			counter++;
-		}
-		else if (outArray[i].code > 0 )
-		{
-			X_1[counter] = gsl_complex_pow_real(RootOfUnity, i);
-			Y_1[counter] = EvaluatedRootPoly[i];
+			SET_REAL(FFTData, i) = GSL_REAL(EvaluatedRootPoly[i]);
+			SET_IMAG(FFTData, i) = GSL_IMAG(EvaluatedRootPoly[i]);
 			counter++;
 		}
 	}
 
-	parallel_array_merge_sort(0, size - 1, X_1, dummy_X, Y_1, dummy_Y);
-	printTables(size,X_1,Y_1);
+	//parallel_array_merge_sort(0, size - 1, X_1, dummy_X, Y_1, dummy_Y);
+	//printTables(size,X_1,Y_1);
 
 	// Disable gsl errors
 	gsl_set_error_handler_off();
-
+/*
     gsl_interp_accel *acc = gsl_interp_accel_alloc();
     gsl_spline *spline = gsl_spline_alloc(gsl_interp_steffen, size);
 
@@ -175,5 +186,25 @@ gsl_complex CalculatePolynomial(gsl_complex EvaluatedRootPoly[])
 	gsl_interp_accel_free(acc);
 
 	return result;
+	*/
+
+	status = gsl_fft_complex_radix2_inverse(FFTData, 1, FFTsize);
+	if (status)
+	{
+		TraceInfo("inverse FFT cannot be performed. ErrorCode[%d] Description:[%s]\n", status, gsl_strerror(status));
+		return 0;
+	}
+
+	double ha = 0;
+	gsl_complex hehe;
+	for (int i = 0; i < size; i++)
+	{
+		printf("[%f] ", FFTData[i]);
+		ha += FFTData[i];
+	}
+	printf("\nha:[%f]\n", ha);
+	hehe= gsl_poly_complex_eval(FFTData, badPlayers, gsl_complex_pow_real(RootOfUnity, proc_id != 0 ? proc_id : numOfNodes));
+	printf("\nhehe:[%f%+fi]\n", GSL_REAL(hehe), GSL_IMAG(hehe));
+
+	return FFTData[0];
 }
-*/

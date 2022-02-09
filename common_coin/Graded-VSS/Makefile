@@ -3,7 +3,7 @@
 LIBS=-lzmq -lczmq -lgsl -lm -lgsl
 FLAGS=-std=c99
 SRC=globals.c gradedshare.c polyfunc.c init.c gradeddecide.c gradecast.c gradedrecover.c main.c
-SRC2=globals.c gradedshare.c polyfunc.c init.c gradeddecide.c gradecast.c main.c
+SRC2=globals.c gradedshare.c polyfunc.c init.c gradeddecide.c gradecast.c gradedrecover.c  main.c
 
 all: Graded-VSS
 

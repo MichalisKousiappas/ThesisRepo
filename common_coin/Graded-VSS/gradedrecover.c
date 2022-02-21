@@ -3,31 +3,58 @@
 #include <gsl/gsl_errno.h>
 #include "polyfunc.h"
 
-int ParsePiece(char *Piece, double RootPolynomial[]);
-void GetPieces(struct servers reqServer[], double RootPolynomial[]);
-double CalculatePolynomial(double EvaluatedRootPoly[]);
+int ParsePiece(char *Piece, double RootPolynomial[], struct output candidate[]);
+void GetPieces(struct servers reqServer[], double RootPolynomial[], struct output candidate[]);
+int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], double *finale);
 
-void SimpleGradedRecover(struct servers reqServer[], double EvaluatedRootPoly[])
+void SimpleGradedRecover(struct servers reqServer[], 
+						double EvaluatedRootPoly[],
+						struct output candidate[],
+						int tally[])
 {
 	char Piece[StringSecreteSize];
+	int flag = 0;
+	double finale = 0;
 	memset(Piece, 0, StringSecreteSize);
+
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	sprintf(Piece, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
 	Distribute(reqServer, Piece);
-	GetPieces(reqServer, EvaluatedRootPoly);
+	GetPieces(reqServer, EvaluatedRootPoly, candidate);
 
 	for (int i = 0; i < numOfNodes; i++)
 		printf("i:[%d] Si:[%f]\n", i, EvaluatedRootPoly[i]);
 
-	double finale = CalculatePolynomial(EvaluatedRootPoly);
-	TraceInfo("%s*exit*finale[%f]\n", __FUNCTION__, round(finale));
+	int status = CalculatePolynomial(EvaluatedRootPoly, candidate, &finale);
+
+	if (status)
+		return;
+
+	TraceInfo("%s*finale[%f]\n", __FUNCTION__, round(finale));
+
+	for (int i = 0; i < numOfNodes; i++)
+	{
+		if (candidate[i].code == 0)
+		{
+			tally[i] = 0;
+			continue;
+		}
+		
+		tally[i] = ((int) round(finale) % maxNumberOfMessages > 0) ? 1 : 0;
+
+		if (tally[i] == 0)
+			flag = 1;
+	}
+
+	if (flag)
+		memset(tally, 0, numOfNodes);
 }
 
 /**
  * Receive the pieces of Simple Graded - Recover phase
 */
- void GetPieces(struct servers reqServer[], double EvaluatedRootPoly[])
+ void GetPieces(struct servers reqServer[], double EvaluatedRootPoly[], struct output candidate[])
 {
 	char recvBuffer[StringSecreteSize + 1];
 	memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -41,7 +68,7 @@ void SimpleGradedRecover(struct servers reqServer[], double EvaluatedRootPoly[])
 		zmq_recv(reqServer[proc_id].value, recvBuffer, StringSecreteSize, 0);
 		TraceDebug("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
 
-		ParsePiece(recvBuffer, EvaluatedRootPoly);
+		ParsePiece(recvBuffer, EvaluatedRootPoly, candidate);
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 
@@ -51,7 +78,7 @@ void SimpleGradedRecover(struct servers reqServer[], double EvaluatedRootPoly[])
 /**
  * Parse the message received from dealer in step 2.
  */
-int ParsePiece(char *Piece, double EvaluatedRootPoly[])
+int ParsePiece(char *Piece, double EvaluatedRootPoly[], struct output candidate[])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
@@ -65,7 +92,7 @@ int ParsePiece(char *Piece, double EvaluatedRootPoly[])
 	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
 	int Process = atoi(token);
 
-	if (outArray[Process].code == 0)
+	if (candidate[Process].code == 0)
 	{
 		TraceInfo("%s*exit*ignoring piece\n", __FUNCTION__);
 		return 1;
@@ -99,14 +126,14 @@ void printTables(int size, double X_1[], double Y_1[])
 	printf("\n");
 }
 
-double CalculatePolynomial(double EvaluatedRootPoly[])
+int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], double *finale)
 {
 	int size = 0;
 	int counter = 0;
 	int status;
 
 	for (int i = 0; i < numOfNodes; i++)
-		if (outArray[i].code != 0 && (fabs(EvaluatedRootPoly[i]) >= 0.0001))
+		if (candidate[i].code != 0 && (fabs(EvaluatedRootPoly[i]) >= 0.0001))
 			size++;
 
 	TraceDebug("%s*size:[%d]\n",__FUNCTION__, size);
@@ -114,7 +141,7 @@ double CalculatePolynomial(double EvaluatedRootPoly[])
 	if (size <= 0)
 	{
 		TraceInfo("I can't do this man...\n");
-		return 0;
+		return 1;
 	}
 
 	double X_1[size], dummy_X[size];
@@ -123,13 +150,13 @@ double CalculatePolynomial(double EvaluatedRootPoly[])
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if (outArray[i].code > 0  && i == 0)
+		if (candidate[i].code > 0  && i == 0)
 		{
 			X_1[i] = pow(RootOfUnity, numOfNodes);
 			Y_1[i] = EvaluatedRootPoly[i];
 			counter++;
 		}
-		else if (outArray[i].code > 0 )
+		else if (candidate[i].code > 0 )
 		{
 			X_1[counter] = pow(RootOfUnity, i);
 			Y_1[counter] = EvaluatedRootPoly[i];
@@ -151,12 +178,13 @@ double CalculatePolynomial(double EvaluatedRootPoly[])
 	if (status)
 	{
 		TraceInfo("Interpolation cannot be performed. ErrorCode[%d] Description:[%s]\n", status, gsl_strerror(status));
-		return 0;
+		return 2;
 	}
 
 	result = gsl_spline_eval(spline, 0, acc);
 	gsl_spline_free(spline);
 	gsl_interp_accel_free(acc);
 
-	return result;
+	*finale = result;
+	return 0;
 }

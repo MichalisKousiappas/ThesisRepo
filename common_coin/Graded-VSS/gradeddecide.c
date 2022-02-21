@@ -22,7 +22,7 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 /**
  * Start the Simple Graded - Decide phase
  */
-void SimpleGradedDecide(struct servers reqServer[],
+struct output SimpleGradedDecide(struct servers reqServer[],
 						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 						double EvaluatedRootPoly[],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
@@ -36,6 +36,7 @@ void SimpleGradedDecide(struct servers reqServer[],
 	char *GradedCastMessage;
 	char DecisionMessage[10] = {0};
 	struct output DealersOutput;
+	struct output accept;
 
 	for (int i = 0; i < numOfNodes; i++)
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
@@ -45,7 +46,7 @@ void SimpleGradedDecide(struct servers reqServer[],
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
-		GradedCastMessage = GradeCast(reqServer, distributor, GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id]));
+		GradedCastMessage = GradeCast(reqServer, distributor, GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id]), outArray);
 		printf("----------------------------------------\n");
 
 		if (outArray[distributor].code > 0)
@@ -69,7 +70,7 @@ void SimpleGradedDecide(struct servers reqServer[],
 	// Dealer now sends out the new polynomials for each node
 	for (int procNum = 0; procNum < numOfNodes; procNum++)
 	{
-		GradedCastMessage = GradeCast(reqServer, dealer, BuildMessage(procNum, NewPolynomials));
+		GradedCastMessage = GradeCast(reqServer, dealer, BuildMessage(procNum, NewPolynomials), outArray);
 		printf("----------------------------------------\n");
 
 		if (outArray[dealer].code > 0 && !IsDealer)
@@ -91,8 +92,9 @@ void SimpleGradedDecide(struct servers reqServer[],
 	else
 		PassableMessages = CountSameMessageAgain(reqServer, "Passable", 1);
 
-	Accept[proc_id] = ValidateTally(PassableMessages);
+	accept = ValidateTally(PassableMessages);
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, PassableMessages);
+	return accept;
 }
 
 /**

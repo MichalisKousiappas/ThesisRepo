@@ -10,9 +10,11 @@
 #include <sys/time.h>
 #include <time.h>
 
+#define ALL_MESSAGE_DELIMITERS "|:"
 #define CONFIDENCE_PARAM 5 // Controls how many polynomials will be generated
 #define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
-#define TRAITORS 0 // Controls whether bad processes will be ON
+#define MESSAGE_ACCEPT ":"
+#define TRAITORS 1 // Controls whether bad processes will be ON
 
 /* 
  Used to control how big the coeficient of the polyonims can go.
@@ -41,7 +43,6 @@ extern int dealer;
 extern int proc_id;
 extern int badPlayers;
 extern struct output *outArray;
-extern struct output *Accept;
 extern int messages;
 extern int maxNumberOfMessages;
 extern int StringSecreteSize;
@@ -50,12 +51,12 @@ extern double RootOfUnity;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
-#define TraceDebug(fmt, ...) fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
+#define TraceDebug(fmt, ...) do{fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 #else
 #define TraceDebug(fmt, ...) ((void)0)
 #endif
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
-#define TraceInfo(fmt, ...)	fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout)
+#define TraceInfo(fmt, ...)	do{ fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 
 #define IsDealer (proc_id == dealer)
 

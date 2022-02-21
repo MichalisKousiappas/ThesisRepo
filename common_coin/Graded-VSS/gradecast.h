@@ -3,7 +3,7 @@
 
 #include "globals.h"
 
-char *GradeCast(struct servers reqServer[], int distributor, const char *message);
+char *GradeCast(struct servers reqServer[], int distributor, const char *message, struct output array[]);
 char *GradeCastPhaseA(struct servers reqServer[], int distributor, const char *message);
 int CountSameMessageAgain(struct servers reqServer[], const char *message, int check);
 int CountSameMessage(struct servers reqServer[], const char *message);

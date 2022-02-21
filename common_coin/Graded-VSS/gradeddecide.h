@@ -3,7 +3,7 @@
 
 #include "globals.h"
 
-void SimpleGradedDecide(struct servers reqServer[],
+struct output SimpleGradedDecide(struct servers reqServer[],
 						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 						double EvaluatedRootPoly[],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],

@@ -9,13 +9,13 @@
 #include "init.h"
 #include "gradedshare.h"
 #include "gradedrecover.h"
+#include "vote.h"
 
 int numOfNodes;
 int dealer;
 int proc_id;
 int badPlayers;
 struct output *outArray = NULL; // used for Graded-Cast validation
-struct output *Accept = NULL; // used for Graded-Decide validation
 int messages = 0;
 int maxNumberOfMessages;
 int StringSecreteSize;
@@ -35,6 +35,9 @@ int main (int argc,char *argv[])
 	double polyEvals[numOfNodes][numOfNodes][CONFIDENCE_PARAM];
 	double EvaluatedRootPoly[numOfNodes];
 	char *secret;
+	struct output candidate[numOfNodes];
+	struct output DecideOutput;
+	int tally[numOfNodes];
 
 	ValidateInput(argc);
 	void *context = zmq_ctx_new();
@@ -47,16 +50,20 @@ int main (int argc,char *argv[])
 	ParseSecret(secret, polyEvals, EvaluatedRootPoly);
 
 	// Begin the Graded-Decide protocol
-	SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial);
+	DecideOutput = SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial);
+
+	// Vote protocol
+	Vote(commonChannel, DecideOutput, candidate);
 
 	// Begin Graded-Recover phase
-	SimpleGradedRecover(commonChannel, EvaluatedRootPoly);
+	SimpleGradedRecover(commonChannel, EvaluatedRootPoly, candidate, tally);
 
-	TraceInfo("total messages send: [%d] Accept.code[%d]\n", messages, Accept[proc_id].code);
+	TraceInfo("total messages send: [%d]\n", messages);
 
 	for(int i = 0; i < numOfNodes; i++)
 		printf("proc_id:[%d] out.code[%d] out.value:[%d]\n", i, outArray[i].code, outArray[i].value);
 
+	TraceInfo("tally is [%d]\n", tally[proc_id]);
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)
 	{

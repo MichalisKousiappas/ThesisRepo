@@ -141,12 +141,6 @@ int getPrimeCongruent()
 	}
 }
 
-double RoundDouble(double var)
-{
-    double value = (int)(var * 10000 + .5);
-    return (double)value / 10000;
-}
-
 /**
  * Initialize variables with the correct values
 */
@@ -186,7 +180,6 @@ void init(void *context,
 
 	// Cheap way to make global array with variable length
 	outArray = calloc(numOfNodes, sizeof(struct output));
-	Accept = calloc(numOfNodes, sizeof(struct output));
 	
 	//maximume number of messages. if all processors are good
 	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
@@ -194,20 +187,17 @@ void init(void *context,
 
 	PrimeCongruent = getPrimeCongruent();
 
-	srand(time(0));
-	int k = rand() % numOfNodes;
+	/* After some straggle, it was decided to just leave it as such since it works */
+	int k = numOfNodes/3;
 	RootOfUnity = cexp(2 * M_PI * I * k / numOfNodes);
-	
+
 	/* 
 	 * Rout must be negative otherwise GSL interpolation won't work.
 	 * the reason is that GSL can't calculate for a point outside of the graph points.
 	 * if we don't have a negative root then we don't cross point 0 thus we can't solve F(0)
 	*/
 	if (RootOfUnity > 0)
-		RootOfUnity = (RootOfUnity*-1) + 0.0001;
-
-	// Round the root to 4 decimals
-	RoundDouble(RootOfUnity);
+		RootOfUnity = (RootOfUnity*-1);
 
 	if (IsDealer)
 	{

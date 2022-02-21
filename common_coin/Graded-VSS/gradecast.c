@@ -194,7 +194,7 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 /**
  * Grade-Cast for Graded-VSS
 */
-char *GradeCast(struct servers reqServer[], int distributor, const char *message)
+char *GradeCast(struct servers reqServer[], int distributor, const char *message, struct output array[])
 {
 	char *commonString = {0};
 	char *result = (char*) malloc(StringSecreteSize);
@@ -218,8 +218,8 @@ char *GradeCast(struct servers reqServer[], int distributor, const char *message
 	else
 		tally = CountSameMessageAgain(reqServer, commonString, 1);
 
-	outArray[distributor] = ValidateTally(tally);
-	TraceInfo("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, outArray[distributor].code, outArray[distributor].value);
+	array[distributor] = ValidateTally(tally);
+	TraceInfo("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, array[distributor].code, array[distributor].value);
 	memcpy(result, commonString, strlen(commonString));
 	return result;
 }

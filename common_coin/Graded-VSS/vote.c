@@ -16,7 +16,6 @@ void Vote(struct servers reqServer[],
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
 		GradedCastMessage = GradeCast(reqServer, distributor, GetAcceptList(distributor), candidate);
-		printf("----------------------------------------\n");
 
 		if (candidate[distributor].code > 0)
 		{
@@ -30,6 +29,7 @@ void Vote(struct servers reqServer[],
 			else
 				TraceInfo("List and candidate accepted\n");
 		}
+		printf("----------------------------------------\n");
 	}
 }
 

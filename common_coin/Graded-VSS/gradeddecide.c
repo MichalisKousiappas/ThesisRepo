@@ -47,7 +47,6 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
 		GradedCastMessage = GradeCast(reqServer, distributor, GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id]), outArray);
-		printf("----------------------------------------\n");
 
 		if (outArray[distributor].code > 0)
 		{
@@ -58,6 +57,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 				outArray[distributor].value = 0;
 			}
 		}
+		printf("----------------------------------------\n");
 	}
 
 	// Save the dealers output when he is pretending to be a normal processes

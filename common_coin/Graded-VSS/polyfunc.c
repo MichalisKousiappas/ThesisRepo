@@ -134,7 +134,6 @@ void printEvaluatedPolys(int numOfNodes, double polyEvals[][numOfNodes][CONFIDEN
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
-
 /**
  * printRootPolyOnly
  * print the root polynomial only when debugging traces are off.

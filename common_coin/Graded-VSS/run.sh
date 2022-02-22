@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # Use this script to run numofnodes processes
 # dealer is the global dealer
 # i could make it read the parameters from input, but i am lazy

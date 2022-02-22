@@ -1,8 +1,7 @@
 /*
  * This example reads ports and hosts from the file hosts.txt
  * make sure the const NUM_OF_NODES is equal or less than the records of hosts.txt
- * to run all the processes at the same time replace NUM_OF_NODES and run this:
- * 	`for i in {0..NUM_OF_NODES - 1}; do ./multiProcesses $i NUM_OF_NODES dealer> result$i.dmp & done`
+ * to run all the processes at the same time use the run.sh script
  */
 #include "polyfunc.h"
 #include "gradeddecide.h"

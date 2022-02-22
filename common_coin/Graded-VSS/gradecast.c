@@ -1,7 +1,8 @@
 #include "gradecast.h"
 
+// Local Function Declaration
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor);
-char *GetFromDistributor(struct servers reqServer[], int distributor);
+void GetFromDistributor(struct servers reqServer[], int distributor, char result[]);
 
 /*
    Graded-Cast tally validation
@@ -34,14 +35,12 @@ struct output ValidateTally(int tally)
  * Get distributors secret
  * distributor is the node that initiates Grade-Cast or the dealer
 */
-char *GetFromDistributor(struct servers reqServer[], int distributor)
+void GetFromDistributor(struct servers reqServer[], int distributor, char result[])
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
-	char *result = (char*) malloc(StringSecreteSize + 1);
 	char sendBuffer[56];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
-	memset(result, 0, sizeof(StringSecreteSize));
 
 	sprintf(sendBuffer, "%d %s", proc_id, "OK");
 
@@ -52,7 +51,6 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
 	zmq_send(reqServer[distributor].value, sendBuffer, strlen(sendBuffer), 0);
 
 	TraceDebug("%s*exit\n", __FUNCTION__);
-	return result;
 }
 
 /**
@@ -92,31 +90,24 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
  * Grade-Cast Phase A
  * In phase A, the distributor will send his message to all other processes.
 */
-char *GradeCastPhaseA(struct servers reqServer[], int distributor, const char *message)
+void GradeCastPhaseA(struct servers reqServer[], int distributor, const char *message, char result[])
 {
-	char *result = (char*) malloc(StringSecreteSize);
-	char *commonString = {0};
-
-	memset(result, 0, StringSecreteSize);
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	if (proc_id == distributor)
 	{
 		DistributorDistribute(reqServer, message, distributor);
 		TraceDebug("%s*distirbutor:[%d] finished. Sending OK signal\n", __FUNCTION__, distributor);
-		memcpy(result, message, StringSecreteSize);
-		commonString = result;
+		memcpy(result, message, strlen(message));
 		Distribute(reqServer, "OK");
 	}
 	else
 	{
-		commonString = GetFromDistributor(reqServer, distributor);
+		GetFromDistributor(reqServer, distributor, result);
 		WaitForDealerSignal(reqServer);
 	}
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
-	memcpy(result, commonString, strlen(commonString));
-	return result;
 }
 
 /**
@@ -127,12 +118,13 @@ char *GradeCastPhaseA(struct servers reqServer[], int distributor, const char *m
 int CountSameMessage(struct servers reqServer[], const char *message)
 {
 	int messagesCount = 1;
-	char *StringZ;
+	char StringZ[StringSecreteSize + 1];
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
+		memset(StringZ, 0, sizeof(StringZ));
 		if (proc_id == i)
 		{
 			DistributorDistribute(reqServer, message, i);
@@ -141,7 +133,7 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 		}
 		else
 		{
-			StringZ = GetFromDistributor(reqServer, i);
+			GetFromDistributor(reqServer, i, StringZ);
 
 			if(StringZ[0] && !memcmp(message, StringZ, strlen(StringZ)))
 			{
@@ -163,12 +155,13 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 int CountSameMessageAgain(struct servers reqServer[], const char *message, int check)
 {
 	int tally = 1;
-	char *StringZ;
+	char StringZ[StringSecreteSize + 1];
 
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
+		memset(StringZ, 0, sizeof(StringZ));
 		if (proc_id == i)
 		{
 			DistributorDistribute(reqServer, check ? message : "", i);
@@ -177,7 +170,7 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 		}
 		else
 		{
-			StringZ = GetFromDistributor(reqServer, i);
+			GetFromDistributor(reqServer, i, StringZ);
 
 			if(StringZ[0] && !memcmp(message, StringZ, strlen(StringZ)))
 			{
@@ -194,33 +187,28 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 /**
  * Grade-Cast for Graded-VSS
 */
-char *GradeCast(struct servers reqServer[], int distributor, const char *message, struct output array[])
+void GradeCast(struct servers reqServer[], int distributor, const char *message, struct output array[], char result[])
 {
-	char *commonString = {0};
-	char *result = (char*) malloc(StringSecreteSize);
 	int tally = 0;
 	int messagesCount = 0;
 
-	memset(result, 0, StringSecreteSize);
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	// Phase A
-	commonString = GradeCastPhaseA(reqServer, distributor, message);
+	GradeCastPhaseA(reqServer, distributor, message, result);
 
 	// Phase B
-	messagesCount = CountSameMessage(reqServer, commonString);
+	messagesCount = CountSameMessage(reqServer, result);
 
-	Traitor(commonString);
+	Traitor(result);
 
 	// Phase C
 	if (messagesCount < (numOfNodes - badPlayers))
-		tally = CountSameMessageAgain(reqServer, commonString, 0);
+		tally = CountSameMessageAgain(reqServer, result, 0);
 	else
-		tally = CountSameMessageAgain(reqServer, commonString, 1);
+		tally = CountSameMessageAgain(reqServer, result, 1);
 
 	array[distributor] = ValidateTally(tally);
 	TraceInfo("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, array[distributor].code, array[distributor].value);
-	memcpy(result, commonString, strlen(commonString));
-	return result;
 }
 

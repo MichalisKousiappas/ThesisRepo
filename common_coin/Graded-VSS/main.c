@@ -20,6 +20,7 @@ int maxNumberOfMessages;
 int StringSecreteSize;
 int PrimeCongruent;
 double RootOfUnity;
+char TimeVar[25];
 
 int main (int argc,char *argv[])
 {
@@ -73,6 +74,7 @@ int main (int argc,char *argv[])
 		zmq_close(commonChannel[i].value);
 	}
 	free(outArray);
+	free(secret);
 	zmq_ctx_destroy(context);
 	TraceInfo("finished\n");
 	return 0;

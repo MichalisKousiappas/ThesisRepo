@@ -48,20 +48,21 @@ extern int maxNumberOfMessages;
 extern int StringSecreteSize;
 extern int PrimeCongruent;
 extern double RootOfUnity;
+extern char TimeVar[25];
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
-#define TraceDebug(fmt, ...) do{fprintf(stdout,"DEBUG " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
+#define TraceDebug(fmt, ...) do{ GetTime(TimeVar); fprintf(stdout,"DEBUG " "%s %d " fmt, TimeVar, getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 #else
 #define TraceDebug(fmt, ...) ((void)0)
 #endif
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
-#define TraceInfo(fmt, ...)	do{ fprintf(stdout,"INFO  " "%s %d " fmt, GetTime(), getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
+#define TraceInfo(fmt, ...)	do{ GetTime(TimeVar); fprintf(stdout,"INFO  " "%s %d " fmt, TimeVar, getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 
 #define IsDealer (proc_id == dealer)
 
 //Global Function declaration
-char *GetTime();
+void GetTime(char res[]);
 void WaitForDealerSignal(struct servers syncServer[]);
 void parallel_array_merge_sort(int i, int j, double a[], double aux[], double b[], double bux[]);
 void Traitor(char *sendBuffer);

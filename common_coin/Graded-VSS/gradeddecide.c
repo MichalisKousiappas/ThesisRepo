@@ -3,14 +3,14 @@
 #include "gradecast.h"
 
 //Local Function Declarations
-char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[]);
+void GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[], char result[]);
 int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM]);
 void PrepaireNewPolynomials(struct servers syncServer[],
 						double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM],
 						double NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers]);
-char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
+void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers], char result[]);
 int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers]);
 void PrintQueryBits(double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM]);
 int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
@@ -33,7 +33,9 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
 	double NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
 	int GoodPieceMessages = 0, PassableMessages = 0;
-	char *GradedCastMessage;
+	char GradedCastMessage[StringSecreteSize];
+	char QBits[StringSecreteSize];
+	char BuildedMessage[StringSecreteSize];
 	char DecisionMessage[10] = {0};
 	struct output DealersOutput;
 	struct output accept;
@@ -42,11 +44,16 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 			QueryBitsArray[i][j] = 0;
 
+	memset(QBits, 0, sizeof(QBits));
+	memset(BuildedMessage, 0, sizeof(BuildedMessage));
+	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
+
 	printf("-------------------SimpleGraded Decide phase 1----------------------------\n");
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
-		GradedCastMessage = GradeCast(reqServer, distributor, GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id]), outArray);
+		GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id], QBits);
+		GradeCast(reqServer, distributor, QBits, outArray, GradedCastMessage);
 
 		if (outArray[distributor].code > 0)
 		{
@@ -58,6 +65,8 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 			}
 		}
 		printf("----------------------------------------\n");
+		memset(QBits, 0, sizeof(QBits));
+		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 	}
 
 	// Save the dealers output when he is pretending to be a normal processes
@@ -70,11 +79,15 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	// Dealer now sends out the new polynomials for each node
 	for (int procNum = 0; procNum < numOfNodes; procNum++)
 	{
-		GradedCastMessage = GradeCast(reqServer, dealer, BuildMessage(procNum, NewPolynomials), outArray);
+		BuildMessage(procNum, NewPolynomials, BuildedMessage);
+		GradeCast(reqServer, dealer, BuildedMessage, outArray, GradedCastMessage);
 		printf("----------------------------------------\n");
 
 		if (outArray[dealer].code > 0 && !IsDealer)
 			ParseMessage(procNum, GradedCastMessage, NewPolynomials);
+		
+		memset(BuildedMessage, 0, sizeof(BuildedMessage));
+		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 	}
 
 	// Dealers outArray was overwritten from before. return it to its original state
@@ -101,7 +114,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
  * Random Query bits means check if bit 2 & 3 for example are set which is just
  * more complicated than just substracting a random number from all your numbers
  */
-char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[])
+void GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[], char result[])
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
@@ -110,10 +123,9 @@ char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], d
 	if (node != proc_id)
 	{
 		TraceDebug("%s*exit*not my turn yet\n", __FUNCTION__);
-		return "";
+		return;
 	}
 
-	char *result = (char*) malloc(StringSecreteSize);
 	memset(result, 0, sizeof(StringSecreteSize)-1);
 
 	length += snprintf(result+length , StringSecreteSize-length, "%d%s", proc_id, MESSAGE_DELIMITER);
@@ -131,7 +143,6 @@ char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], d
 	result[length-1] = '\0';
 
 	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
-	return result;
 }
 
 /**
@@ -208,17 +219,15 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 /**
  * Builds the new polynomials to be send.
 */
-char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
+void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers], char result[])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	int length = 0;
-	char *result = (char*) malloc(StringSecreteSize);
-	memset(result, 0, sizeof(StringSecreteSize)-1);
 
 	if (!IsDealer)
 	{
 		TraceDebug("%s*exit*Not my job\n", __FUNCTION__);
-		return "";
+		return;
 	}
 
 	length += snprintf(result+length , StringSecreteSize-length, "%d%s", node, MESSAGE_DELIMITER);
@@ -237,7 +246,6 @@ char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayer
 	result[length-1] = '\0';
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
-	return result;
 }
 
 /**

@@ -2,20 +2,29 @@
 #include "gradecast.h"
 #include "math.h"
 
-char *GetAcceptList(int node);
+// Local Function Declaration
+void GetAcceptList(int node, char result[]);
 int ParseAcceptList(char *message, struct output DecideOutput);
 
+/**
+ * Vote
+*/
 void Vote(struct servers reqServer[],
 			struct output DecideOutput,
 			struct output candidate[])
 {
-	char *GradedCastMessage;
+	char GradedCastMessage[StringSecreteSize];
+	char List[StringSecreteSize];
+
+	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
+	memset(List, 0, sizeof(List));
 
 	printf("-------------------Vote----------------------------\n");
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
-		GradedCastMessage = GradeCast(reqServer, distributor, GetAcceptList(distributor), candidate);
+		GetAcceptList(distributor, List);
+		GradeCast(reqServer, distributor, List, candidate, GradedCastMessage);
 
 		if (candidate[distributor].code > 0)
 		{
@@ -27,10 +36,15 @@ void Vote(struct servers reqServer[],
 			}
 		}
 		printf("----------------------------------------\n");
+		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
+		memset(List, 0, sizeof(List));
 	}
 }
 
-char *GetAcceptList(int node)
+/**
+ * Return the accept list in string
+*/ 
+void GetAcceptList(int node, char result[])
 {
 	TraceInfo("%s*enter\n", __FUNCTION__);
 	int length = 0;
@@ -38,11 +52,8 @@ char *GetAcceptList(int node)
 	if (node != proc_id)
 	{
 		TraceDebug("%s*exit*not my turn yet\n", __FUNCTION__);
-		return "";
+		return;
 	}
-
-	char *result = (char*) malloc(StringSecreteSize);
-	memset(result, 0, sizeof(StringSecreteSize)-1);
 
 	length += snprintf(result+length , StringSecreteSize-length, "%d%s", proc_id, MESSAGE_DELIMITER);
 
@@ -58,9 +69,11 @@ char *GetAcceptList(int node)
 	result[length-1] = '\0';
 
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
-	return result;
 }
 
+/**
+ * Parse the accept list and check if candidate is valid
+*/ 
 int ParseAcceptList(char *message, struct output DecideOutput)
 {
 	TraceDebug("ParseAcceptList [%s] size:[%ld]\n", message, strlen(message));

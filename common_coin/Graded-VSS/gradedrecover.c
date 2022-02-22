@@ -3,26 +3,49 @@
 #include <gsl/gsl_errno.h>
 #include "polyfunc.h"
 
+// Local Function declarion
 int ParsePiece(char *Piece, double RootPolynomial[], struct output candidate[]);
-void GetPieces(struct servers reqServer[], double RootPolynomial[], struct output candidate[]);
 int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], double *finale);
+void BuildPiece(int node, double EvaluatedRootPoly[], char result[]);
 
+/**
+ * SimpleGradedRecover
+*/
 void SimpleGradedRecover(struct servers reqServer[], 
 						double EvaluatedRootPoly[],
 						struct output candidate[],
 						int tally[])
 {
-	char Piece[StringSecreteSize];
 	int flag = 0;
 	double finale = 0;
-	memset(Piece, 0, StringSecreteSize);
+	char GradedCastMessage[StringSecreteSize];
+	char BuildedPiece[StringSecreteSize];
+
+	memset(BuildedPiece, 0, sizeof(BuildedPiece));
+	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 
 	printf("-------------------SimpleGraded Recover----------------------------\n");
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
-	sprintf(Piece, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
-	Distribute(reqServer, Piece);
-	GetPieces(reqServer, EvaluatedRootPoly, candidate);
+	// all processes take turn and distribute their "secret"
+	for (int distributor = 0; distributor < numOfNodes; distributor++)
+	{
+		BuildPiece(distributor, EvaluatedRootPoly, BuildedPiece);
+		GradeCast(reqServer, distributor, BuildedPiece, candidate, GradedCastMessage);
+
+		if (candidate[distributor].code > 0)
+		{
+			// Parse Piece, if message seems invalid then reject the sender
+			if (ParsePiece(GradedCastMessage, EvaluatedRootPoly, candidate))
+			{
+				candidate[distributor].code = 0;
+				candidate[distributor].value = 0;
+			}
+		}
+		printf("----------------------------------------\n");
+		memset(BuildedPiece, 0, sizeof(BuildedPiece));
+		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
+	}
 
 	#ifdef DEBUG
 		for (int i = 0; i < numOfNodes; i++)
@@ -55,30 +78,6 @@ void SimpleGradedRecover(struct servers reqServer[],
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
 	printf("----------------------------------------\n");
-}
-
-/**
- * Receive the pieces of Simple Graded - Recover phase
-*/
- void GetPieces(struct servers reqServer[], double EvaluatedRootPoly[], struct output candidate[])
-{
-	char recvBuffer[StringSecreteSize + 1];
-	memset(recvBuffer, 0, sizeof(recvBuffer));
-
-	TraceInfo("%s*enter\n", __FUNCTION__);
-
-	for (int i = 0; i < numOfNodes; i++)
-	{
-		if (i == proc_id) continue;
-
-		zmq_recv(reqServer[proc_id].value, recvBuffer, StringSecreteSize, 0);
-		TraceDebug("Received data as server[%d]: [%s]\n", proc_id, recvBuffer);
-
-		ParsePiece(recvBuffer, EvaluatedRootPoly, candidate);
-		memset(recvBuffer, 0, sizeof(recvBuffer));
-	}
-
-	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
 /**
@@ -117,6 +116,9 @@ int ParsePiece(char *Piece, double EvaluatedRootPoly[], struct output candidate[
 	return 0;
 }
 
+/**
+ * Print the 2 given tables. Both tables must have the same size
+ */
 void printTables(int size, double X_1[], double Y_1[])
 {
 	#ifndef DEBUG
@@ -132,6 +134,9 @@ void printTables(int size, double X_1[], double Y_1[])
 	printf("\n");
 }
 
+/**
+ * Performs the interpolation that will then give the true secret from F(0)
+ */
 int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], double *finale)
 {
 	int size = 0;
@@ -193,4 +198,27 @@ int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], d
 
 	*finale = result;
 	return 0;
+}
+
+/**
+ * Build Piece that you will share.
+ */
+void BuildPiece(int node, double EvaluatedRootPoly[], char result[])
+{
+	TraceDebug("%s*enter\n", __FUNCTION__);
+	int length = 0;
+
+	if (node != proc_id)
+	{
+		TraceDebug("%s*exit*not my turn yet\n", __FUNCTION__);
+		return;
+	}
+
+	length +=sprintf(result, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
+
+	Traitor(result);
+
+	result[length] = '\0';
+
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
 }

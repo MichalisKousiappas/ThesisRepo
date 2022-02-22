@@ -134,12 +134,23 @@ void printEvaluatedPolys(int numOfNodes, double polyEvals[][numOfNodes][CONFIDEN
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
-/*
-int poly_eval(const int c[], const int len, const double x)
-{
-  int i;
-  int ans = c[len-1];
-  for(i=len-1; i>0; i--) ans = c[i-1] + x * ans;
-  return ans;
-}
+
+/**
+ * printRootPolyOnly
+ * print the root polynomial only when debugging traces are off.
 */
+void printRootPolyOnly(double RootPoly[])
+{
+	#ifdef DEBUG
+		return;
+	#endif
+
+	printf("Root polynomial:\n");
+	for (int j = 0; j < badPlayers; j++)
+	{
+		printf(" %fx^%d", RootPoly[j], j);
+		if (j != badPlayers - 1) 
+			printf(" + ");
+	}
+	printf("\n");
+}

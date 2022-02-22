@@ -103,7 +103,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
  */
 char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
 	int randomNum = rand() % (MAX_COEFICIENT/2);
 
@@ -130,7 +130,7 @@ char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], d
 	length += snprintf(result+length , StringSecreteSize-length, "%s", MESSAGE_DELIMITER);
 	result[length-1] = '\0';
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
 	return result;
 }
 
@@ -140,7 +140,8 @@ char *GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], d
  */
 int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM])
 {
-	printf("ParseQueryBitsMessage [%s] size:[%ld]\n", message, strlen(message));
+	TraceDebug("ParseQueryBitsMessage [%s] size:[%ld]\n", message, strlen(message));
+
 	if (message[strlen(message) - 1] != '|')
 	{
 		TraceInfo("%s*exit*Invalid Query Bits message\n", __FUNCTION__);
@@ -244,7 +245,7 @@ char *BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayer
  */
 int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 {
-	printf("ParseMessage [%s] size:[%ld]\n", message, strlen(message));
+	TraceDebug("ParseMessage [%s] size:[%ld]\n", message, strlen(message));
 	if (message[strlen(message) - 1] != '|')
 	{
 		TraceInfo("%s*exit*Invalid Message\n", __FUNCTION__);
@@ -325,7 +326,9 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 			continue;
 
 		// Enable in case you want excesive debugging.
-		printf("i:[%d]\n",i);
+		#ifdef DEBUG
+			printf("i:[%d]\n",i);
+		#endif
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
 			counter1++;
@@ -345,7 +348,9 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 				TraceDebug("Error here\n");
 			}
 		}
-		printf("\n");
+		#ifdef DEBUG
+			printf("\n");
+		#endif
 	}
 	res = ((counter1 == counter2) && (counter1 != 0));
 

@@ -36,7 +36,7 @@ struct output ValidateTally(int tally)
 */
 char *GetFromDistributor(struct servers reqServer[], int distributor)
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	char *result = (char*) malloc(StringSecreteSize + 1);
 	char sendBuffer[56];
 
@@ -51,7 +51,7 @@ char *GetFromDistributor(struct servers reqServer[], int distributor)
 	TraceDebug("Sending data as client[%d] to distributor[%d]: [%s]\n", proc_id, distributor, sendBuffer);
 	zmq_send(reqServer[distributor].value, sendBuffer, strlen(sendBuffer), 0);
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return result;
 }
 

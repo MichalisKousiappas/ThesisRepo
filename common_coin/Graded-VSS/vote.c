@@ -63,7 +63,7 @@ char *GetAcceptList(int node)
 
 int ParseAcceptList(char *message, struct output DecideOutput)
 {
-	printf("ParseAcceptList [%s] size:[%ld]\n", message, strlen(message));
+	TraceDebug("ParseAcceptList [%s] size:[%ld]\n", message, strlen(message));
 
 	struct output ParsedMessage[numOfNodes];
 	int counter = 0;
@@ -95,8 +95,10 @@ int ParseAcceptList(char *message, struct output DecideOutput)
 		}
 	}
 
-	for (int i = 0; i < numOfNodes; i++)
-		printf("%s*i[%d] code[%d] value[%d]\n", __FUNCTION__, i, ParsedMessage[i].code, ParsedMessage[i].value);
+	#ifdef DEBUG
+		for (int i = 0; i < numOfNodes; i++)
+			printf("%s*i[%d] code[%d] value[%d]\n", __FUNCTION__, i, ParsedMessage[i].code, ParsedMessage[i].value);
+	#endif
 
 	// Count the number of nodes that were accepted
 	for (int i = 0; i < numOfNodes; i++)

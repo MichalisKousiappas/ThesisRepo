@@ -203,10 +203,11 @@ void init(void *context,
 	{
 		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
 		printPolynomials(badPlayers, polynomials, RootPolynomial);
+		printRootPolyOnly(RootPolynomial);
 		evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
 		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
 	}
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f]\n",
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f]\n",
 			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 }

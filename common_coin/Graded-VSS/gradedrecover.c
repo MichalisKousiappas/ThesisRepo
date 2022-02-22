@@ -17,14 +17,17 @@ void SimpleGradedRecover(struct servers reqServer[],
 	double finale = 0;
 	memset(Piece, 0, StringSecreteSize);
 
+	printf("-------------------SimpleGraded Recover----------------------------\n");
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	sprintf(Piece, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
 	Distribute(reqServer, Piece);
 	GetPieces(reqServer, EvaluatedRootPoly, candidate);
 
-	for (int i = 0; i < numOfNodes; i++)
-		printf("i:[%d] Si:[%f]\n", i, EvaluatedRootPoly[i]);
+	#ifdef DEBUG
+		for (int i = 0; i < numOfNodes; i++)
+			printf("i:[%d] Si:[%f]\n", i, EvaluatedRootPoly[i]);
+	#endif
 
 	int status = CalculatePolynomial(EvaluatedRootPoly, candidate, &finale);
 
@@ -49,6 +52,9 @@ void SimpleGradedRecover(struct servers reqServer[],
 
 	if (flag)
 		memset(tally, 0, numOfNodes);
+
+	TraceInfo("%s*exit\n", __FUNCTION__);
+	printf("----------------------------------------\n");
 }
 
 /**

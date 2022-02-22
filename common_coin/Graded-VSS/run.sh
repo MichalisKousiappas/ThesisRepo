@@ -15,7 +15,7 @@ pidof Graded-VSS.o && killall Graded-VSS.o && sleep 1
 
 # clean recompile to delete traces as well
 make clean
-make debug || exit
+make || exit
 
 # run the processes numofnodes time and redirect output to file
 for i in $(seq 0 $((numofnodes-1))); do ./Graded-VSS.o $i $numofnodes $dealer > result$i.dmp & done

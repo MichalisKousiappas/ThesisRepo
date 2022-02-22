@@ -13,7 +13,6 @@ void evaluatePolynomials(int badplayers,
 						double EvaluatedRootPoly[]);
 void printPolynomials(int badplayers, double polynomials[][CONFIDENCE_PARAM][badplayers], double RootPoly[]);
 void GenerateRandomPoly(int badplayers, double polynomials[][CONFIDENCE_PARAM][badplayers], double RootPoly[]);
-
-//int poly_eval(const int c[], const int len, const double x);
+void printRootPolyOnly(double RootPoly[]);
 
 #endif

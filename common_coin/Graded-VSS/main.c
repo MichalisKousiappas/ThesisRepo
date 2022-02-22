@@ -60,10 +60,13 @@ int main (int argc,char *argv[])
 
 	TraceInfo("total messages send: [%d]\n", messages);
 
-	for(int i = 0; i < numOfNodes; i++)
-		printf("proc_id:[%d] out.code[%d] out.value:[%d]\n", i, outArray[i].code, outArray[i].value);
+	#ifdef DEBUG
+		for(int i = 0; i < numOfNodes; i++)
+			printf("proc_id:[%d] out.code[%d] out.value:[%d]\n", i, outArray[i].code, outArray[i].value);
+	#endif
 
 	TraceInfo("tally is [%d]\n", tally[proc_id]);
+
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)
 	{

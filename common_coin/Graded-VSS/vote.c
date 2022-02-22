@@ -24,10 +24,7 @@ void Vote(struct servers reqServer[],
 			{
 				candidate[distributor].code = 0;
 				candidate[distributor].value = 0;
-				TraceDebug("Didn't make the list\n");
 			}
-			else
-				TraceInfo("List and candidate accepted\n");
 		}
 		printf("----------------------------------------\n");
 	}
@@ -107,8 +104,8 @@ int ParseAcceptList(char *message, struct output DecideOutput)
 			counter++;
 
 	/*
-		Check if the number of accepted nodes are more or equal to (n-t) and then check if you were also accepted.
-		otherwise return failure 
+		Check if the number of accepted nodes are more or equal to (n-t).
+		Check if your code matches their code of you.
 	*/
 	if (!((counter >= (numOfNodes - badPlayers)) && (fabs(ParsedMessage[proc_id].code - DecideOutput.code) < 2)))
 		return 1;

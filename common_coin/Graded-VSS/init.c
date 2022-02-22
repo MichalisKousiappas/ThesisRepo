@@ -104,7 +104,7 @@ void ValidateInput(int argc)
 	}
 }
 
-/* 
+/*
  * Utility function to check whether a number is prime or not
 */
 int isPrime(int n)
@@ -112,30 +112,30 @@ int isPrime(int n)
     // Corner case
     if (n <= 1)
         return 0;
- 
+
     if (n == 2 || n == 3)
         return 1;
- 
+
     // Check from 2 to sqrt(n)
     for (int i = 2; i * i <= n; i++)
         if (n % i == 0)
             return 0;
- 
+
     return 1;
 }
- 
+
 // finding the Prime numbers
 int getPrimeCongruent()
 {
     int c1 = 2;
     int num1;
- 
+
 	// Printing n numbers of prime
 	while (1)
 	{
 		// Checking the form of An+1
 		num1 = (c1 * numOfNodes) + 1;
-		if (isPrime(num1) && (num1 > maxNumberOfMessages)) 
+		if (isPrime(num1) && (num1 > maxNumberOfMessages))
 			return num1;
 		c1+=2;
 	}
@@ -144,7 +144,7 @@ int getPrimeCongruent()
 /**
  * Initialize variables with the correct values
 */
-void init(void *context, 
+void init(void *context,
 		struct servers reqServer[],
 		char serversIP[][256],
 		double polynomials[][CONFIDENCE_PARAM][badPlayers],
@@ -174,13 +174,13 @@ void init(void *context,
 
 	for (int i = 0; i < badPlayers; i++)
 		RootPoly[i] = 0;
-	
+
 	for (int i = 0; i < numOfNodes; i++)
 		EvaluatedRootPoly[i] = 0;
 
 	// Cheap way to make global array with variable length
 	outArray = calloc(numOfNodes, sizeof(struct output));
-	
+
 	//maximume number of messages. if all processors are good
 	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
 	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(double));
@@ -191,7 +191,7 @@ void init(void *context,
 	int k = numOfNodes/3;
 	RootOfUnity = cexp(2 * M_PI * I * k / numOfNodes);
 
-	/* 
+	/*
 	 * Rout must be negative otherwise GSL interpolation won't work.
 	 * the reason is that GSL can't calculate for a point outside of the graph points.
 	 * if we don't have a negative root then we don't cross point 0 thus we can't solve F(0)
@@ -207,6 +207,6 @@ void init(void *context,
 		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
 	}
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f]\n", 
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f]\n",
 			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
 }

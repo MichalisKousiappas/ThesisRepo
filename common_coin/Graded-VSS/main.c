@@ -52,7 +52,7 @@ int main (int argc,char *argv[])
 	// Begin the Graded-Decide protocol
 	DecideOutput = SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial);
 
-	// Vote protocol
+	// Begin Vote protocol
 	Vote(commonChannel, DecideOutput, candidate);
 
 	// Begin Graded-Recover phase

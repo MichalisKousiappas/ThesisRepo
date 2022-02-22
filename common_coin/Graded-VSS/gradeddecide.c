@@ -338,8 +338,8 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 			TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
 			i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 
-			// limit the precision check to 2 bits instead of 4. This is because the calculations can't be this precise
-			if ( fabs(Pij - TplusQmultiS) <= 0.0001)
+			// limit the precision check to 3 bits instead of 4. This is because the calculations can't be this precise
+			if ( fabs(Pij - TplusQmultiS) <= 0.001)
 			{
 				counter2++;
 			}

@@ -20,7 +20,7 @@
  Used to control how big the coeficient of the polyonims can go.
  Keep it low so its easy to follow
 */
-#define MAX_COEFICIENT 100
+#define MAX_COEFICIENT 500
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846

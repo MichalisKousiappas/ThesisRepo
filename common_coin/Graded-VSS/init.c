@@ -183,7 +183,14 @@ void init(void *context,
 
 	//maximume number of messages. if all processors are good
 	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
-	StringSecreteSize = (numOfNodes * numOfNodes * CONFIDENCE_PARAM * sizeof(double));
+	
+	/* 
+		max characters in message because dealer sends out numOfNodes doubles +1 for the root poly
+		multiplied by the CONFIDENCE_PARAM which is the number of doubles per numOfNodes
+		and finally, sizeof(double) since we send out doubles +1 for the dot (.) that is added as extra for the string 
+		and +1 for the delimiter character which is used for separate the values
+	*/
+	StringSecreteSize = (numOfNodes+1) * CONFIDENCE_PARAM * (sizeof(double)+3);
 
 	PrimeCongruent = getPrimeCongruent();
 

@@ -6,15 +6,15 @@
 
 echo
 
-numofnodes=16
-dealer=2
+numofnodes=15
+dealer=5
 
 # kill any processes that is still alive from previous run
 pidof Graded-VSS.o && killall Graded-VSS.o && sleep 1
 
 # clean recompile to delete traces as well
 make clean
-make || exit
+make debug || exit
 
 # run the processes numofnodes time and redirect output to file
 for i in $(seq 0 $((numofnodes-1))); do ./Graded-VSS.o $i $numofnodes $dealer > result$i.dmp & done
@@ -42,3 +42,5 @@ grep -i "finale" result* | wc -l
 
 echo -e "tally's were: "
 grep -ohi "tally is \[.*\]" result* --color=auto | sort | uniq
+
+spd-say -i -40 done

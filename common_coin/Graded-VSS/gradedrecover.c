@@ -31,7 +31,7 @@ void SimpleGradedRecover(struct servers reqServer[],
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
 		BuildPiece(distributor, EvaluatedRootPoly, BuildedPiece);
-		GradeCast(reqServer, distributor, BuildedPiece, candidate, GradedCastMessage);
+		GradeCastPhaseA(reqServer, distributor, BuildedPiece, GradedCastMessage);
 
 		if (candidate[distributor].code > 0)
 		{

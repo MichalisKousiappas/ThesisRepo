@@ -187,6 +187,7 @@ void init(void *context,
 	// Cheap way to make global array with variable length
 	outArray = calloc(numOfNodes, sizeof(struct output));
 	Accept = calloc(numOfNodes, sizeof(struct output));
+	RootOfUnity = calloc(numOfNodes, sizeof(gsl_complex));
 
 	//maximume number of messages. if all processors are good
 	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
@@ -194,26 +195,11 @@ void init(void *context,
 
 	PrimeCongruent = getPrimeCongruent();
 
-	srand(time(0));
-	int k = rand() % numOfNodes;
-	//RootOfUnity = cexp(2 * M_PI * I * k / numOfNodes);
-	RootOfUnity = gsl_complex_polar(1, 2 * M_PI * k / numOfNodes);
-	GSL_REAL(RootOfUnity) = fmod(GSL_REAL(RootOfUnity), PrimeCongruent);
-	GSL_IMAG(RootOfUnity) = fmod(GSL_IMAG(RootOfUnity), PrimeCongruent);
+	for (int i = 0; i < numOfNodes; i++)
+	{
+		RootOfUnity[i] = gsl_complex_polar(1, 2 * M_PI * i / numOfNodes);
+	}
 
-/* Commented out since it might not be needed after all
-	 
-	 * Rout must be negative otherwise GSL interpolation won't work.
-	 * the reason is that GSL can't calculate for a point outside of the graph points.
-	 * if we don't have a negative root then we don't cross point 0 thus we can't solve F(0)
-	
-	if (RootOfUnity > 0)
-		RootOfUnity = (RootOfUnity*-1) + 0.0001;
-
-	// Round the root to 4 decimals
-	//RoundDouble(RootOfUnity);
-
-*/
 	if (IsDealer)
 	{
 		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
@@ -223,5 +209,8 @@ void init(void *context,
 	}
 
 	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\t\t MaxMessages:[%d] secreteSize:[%d] primeCongruent[%d] RootOfUnity[%f%+fi]\n", 
-			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, GSL_REAL(RootOfUnity), GSL_IMAG(RootOfUnity));
+			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, 
+			   StringSecreteSize, PrimeCongruent, 
+			   GSL_REAL(RootOfUnity[proc_id]), 
+			   GSL_IMAG(RootOfUnity[proc_id]));
 }

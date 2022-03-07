@@ -20,7 +20,7 @@ int messages = 0;
 int maxNumberOfMessages;
 int StringSecreteSize;
 int PrimeCongruent;
-gsl_complex RootOfUnity;
+gsl_complex *RootOfUnity;
 
 int main (int argc,char *argv[])
 {

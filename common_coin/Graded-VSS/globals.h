@@ -56,7 +56,7 @@ extern int messages;
 extern int maxNumberOfMessages;
 extern int StringSecreteSize;
 extern int PrimeCongruent;
-extern gsl_complex RootOfUnity;
+extern gsl_complex *RootOfUnity;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG

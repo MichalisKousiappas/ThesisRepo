@@ -7,9 +7,9 @@ dealer=2
 
 pidof temporary.o && killall temporary.o && sleep 1
 make clean
-make temporary || exit
+make debug || exit
 
-for i in $(seq 0 $((numofnodes-1))); do ./temporary.o $i $numofnodes $dealer > temp_result$i.dmp & done
+for i in $(seq 0 $((numofnodes-1))); do ./Graded-VSS.o $i $numofnodes $dealer > temp_result$i.dmp & done
 
 wait
 #ps -ef | grep temporary.o

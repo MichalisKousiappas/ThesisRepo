@@ -115,9 +115,9 @@ void evaluatePolynomials(int badplayers,
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (i != 0)
-			X = gsl_complex_pow_real(RootOfUnity, i);
+			X = gsl_complex_pow_real(RootOfUnity[i], i);
 		else
-			X = gsl_complex_pow_real(RootOfUnity, numOfNodes);
+			X = gsl_complex_pow_real(RootOfUnity[i], numOfNodes);
 
 		EvaluatedRootPoly[i] = gsl_poly_complex_eval(RootPoly, badplayers, X);
 		TraceDebug("node [%d] evaluated with [%f%+fi]\n", i, GSL_REAL(X), GSL_IMAG(X));

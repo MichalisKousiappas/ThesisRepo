@@ -350,7 +350,7 @@ int CheckForGoodPiece(gsl_complex NewPolynomials[][CONFIDENCE_PARAM][badPlayers]
 		{
 			counter1++;
 
-			Pij = gsl_complex_poly_complex_eval(NewPolynomials[i][j], badPlayers, gsl_complex_pow_real(RootOfUnity, power));
+			Pij = gsl_complex_poly_complex_eval(NewPolynomials[i][j], badPlayers, gsl_complex_pow_real(RootOfUnity[proc_id], power));
 			TplusQmultiS = gsl_complex_add(polyEvals[proc_id][i][j], gsl_complex_mul(QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]));
 
 			TraceDebug("i:[%d] j:[%d] Pij:[%f%+fi] TplusQmulitS:[%f%+fi] Qbit:[%f%+fi] RootPoly:[%f%+fi]\n",

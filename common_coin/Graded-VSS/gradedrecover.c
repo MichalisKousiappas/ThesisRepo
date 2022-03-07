@@ -203,7 +203,7 @@ double CalculatePolynomial(gsl_complex EvaluatedRootPoly[])
 		ha += FFTData[i];
 	}
 	printf("\nha:[%f]\n", ha);
-	hehe= gsl_poly_complex_eval(FFTData, badPlayers, gsl_complex_pow_real(RootOfUnity, proc_id != 0 ? proc_id : numOfNodes));
+	hehe= gsl_poly_complex_eval(FFTData, badPlayers, gsl_complex_pow_real(RootOfUnity[proc_id], proc_id != 0 ? proc_id : numOfNodes));
 	printf("\nhehe:[%f%+fi]\n", GSL_REAL(hehe), GSL_IMAG(hehe));
 
 	return FFTData[0];

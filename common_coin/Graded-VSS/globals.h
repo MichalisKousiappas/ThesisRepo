@@ -11,7 +11,6 @@
 #include <time.h>
 
 #define ALL_MESSAGE_DELIMITERS "|:"
-#define CONFIDENCE_PARAM 5 // Controls how many polynomials will be generated
 #define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
 #define MESSAGE_ACCEPT ":"
 #define TRAITORS 0 // Controls whether bad processes will be ON (simulated)
@@ -49,6 +48,7 @@ extern int StringSecreteSize;
 extern int PrimeCongruent;
 extern double RootOfUnity;
 extern char TimeVar[25];
+extern int CONFIDENCE_PARAM;
 
 //use this bad boy so printf are printed on demand and not always. fflush is to force the output in case we write to file through bash
 #ifdef DEBUG
@@ -57,7 +57,7 @@ extern char TimeVar[25];
 #define TraceDebug(fmt, ...) ((void)0)
 #endif
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
-#define TraceInfo(fmt, ...)	do{ GetTime(TimeVar); fprintf(stdout,"INFO  " "%s %d " fmt, TimeVar, getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
+#define TraceInfo(fmt, ...)	do{ GetTime(TimeVar); fprintf(stdout,"INFO  " "%s %d " fmt, TimeVar, getpid(), ##__VA_ARGS__);}while(0)
 
 #define IsDealer (proc_id == dealer)
 

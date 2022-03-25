@@ -4,20 +4,20 @@
 #include "polyfunc.h"
 
 // Local Function declarion
-int ParsePiece(char *Piece, double RootPolynomial[], struct output candidate[]);
-int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], double *finale);
-void BuildPiece(int node, double EvaluatedRootPoly[], char result[]);
+int ParsePiece(char *Piece, double Secret_hj[][numOfNodes], struct output candidate[]);
+int CalculatePolynomial(double Secret_hj[][numOfNodes], struct output candidate[], double *finale);
+void BuildPiece(int node, double Secret_hj[][numOfNodes], char result[]);
 
 /**
  * SimpleGradedRecover
 */
 void SimpleGradedRecover(struct servers reqServer[], 
-						double EvaluatedRootPoly[],
+						double Secret_hj[][numOfNodes],
 						struct output candidate[],
 						int tally[])
 {
 	int flag = 0;
-	double finale = 0;
+	double finale[numOfNodes];
 	char GradedCastMessage[StringSecreteSize];
 	char BuildedPiece[StringSecreteSize];
 
@@ -28,36 +28,36 @@ void SimpleGradedRecover(struct servers reqServer[],
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	// all processes take turn and distribute their "secret"
-	for (int distributor = 0; distributor < numOfNodes; distributor++)
+	for (dealer = 0; dealer < numOfNodes; dealer++)
 	{
-		BuildPiece(distributor, EvaluatedRootPoly, BuildedPiece);
-		GradeCastPhaseA(reqServer, distributor, BuildedPiece, GradedCastMessage);
-
-		if (candidate[distributor].code > 0)
+		for (int distributor = 0; distributor < numOfNodes; distributor++)
 		{
-			// Parse Piece, if message seems invalid then reject the sender
-			if (ParsePiece(GradedCastMessage, EvaluatedRootPoly, candidate))
+			BuildPiece(distributor, Secret_hj, BuildedPiece);
+			GradeCastPhaseA(reqServer, distributor, BuildedPiece, GradedCastMessage);
+
+			if (candidate[dealer].code > 0)
 			{
-				candidate[distributor].code = 0;
-				candidate[distributor].value = 0;
+				// Parse Piece, if message seems invalid then reject the sender
+				if (ParsePiece(GradedCastMessage, Secret_hj, candidate))
+				{
+					candidate[distributor].code = 0;
+					candidate[distributor].value = 0;
+					continue;
+				}
 			}
+			#ifdef DEBUG
+				printf("----------------------------------------\n");
+			#endif
+			memset(BuildedPiece, 0, sizeof(BuildedPiece));
+			memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 		}
-		printf("----------------------------------------\n");
-		memset(BuildedPiece, 0, sizeof(BuildedPiece));
-		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
+		CalculatePolynomial(Secret_hj, candidate, finale);	
 	}
 
 	#ifdef DEBUG
 		for (int i = 0; i < numOfNodes; i++)
-			printf("i:[%d] Si:[%f]\n", i, EvaluatedRootPoly[i]);
+			printf("i:[%d] finale:[%f]\n", i, round(finale[i]));
 	#endif
-
-	int status = CalculatePolynomial(EvaluatedRootPoly, candidate, &finale);
-
-	if (status)
-		return;
-
-	TraceInfo("%s*finale[%f]\n", __FUNCTION__, round(finale));
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
@@ -66,8 +66,8 @@ void SimpleGradedRecover(struct servers reqServer[],
 			tally[i] = 0;
 			continue;
 		}
-		
-		tally[i] = ((int) round(finale) % maxNumberOfMessages > 0) ? 1 : 0;
+
+		tally[i] = ((int) round(finale[i]) % maxNumberOfMessages > 0) ? 1 : 0;
 
 		if (tally[i] == 0)
 			flag = 1;
@@ -83,9 +83,9 @@ void SimpleGradedRecover(struct servers reqServer[],
 /**
  * Parse the message received from dealer in step 2.
  */
-int ParsePiece(char *Piece, double EvaluatedRootPoly[], struct output candidate[])
+int ParsePiece(char *Piece, double Secret_hj[][numOfNodes], struct output candidate[])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	if (Piece[strlen(Piece) - 1] != '|')
 	{
@@ -94,7 +94,7 @@ int ParsePiece(char *Piece, double EvaluatedRootPoly[], struct output candidate[
 	}
 
 	char* token = strtok(Piece, MESSAGE_DELIMITER);
-	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
+	//TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
 	int Process = atoi(token);
 
 	if (candidate[Process].code == 0)
@@ -105,14 +105,14 @@ int ParsePiece(char *Piece, double EvaluatedRootPoly[], struct output candidate[
 
 	token = strtok(0, MESSAGE_DELIMITER);
 	if (token != NULL)
-		EvaluatedRootPoly[Process] = strtod(token, NULL);
+		Secret_hj[Process][dealer] = strtod(token, NULL);
 	else
 	{
 		TraceInfo("%s*exit*Invalid Piece 2\n", __FUNCTION__);
 		return 1;
 	}
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return 0;
 }
 
@@ -137,14 +137,21 @@ void printTables(int size, double X_1[], double Y_1[])
 /**
  * Performs the interpolation that will then give the true secret from F(0)
  */
-int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], double *finale)
+int CalculatePolynomial(double Secret_hj[][numOfNodes], struct output candidate[], double finale[])
 {
 	int size = 0;
 	int counter = 0;
 	int status;
 
+	if (candidate[dealer].code == 0)
+	{
+		TraceInfo("no need to calculate for [%d] process\n", dealer);
+		finale[dealer] = 0;
+		return 2;
+	}
+
 	for (int i = 0; i < numOfNodes; i++)
-		if (candidate[i].code != 0 && (fabs(EvaluatedRootPoly[i]) >= 0.0001))
+		if (candidate[i].code != 0)
 			size++;
 
 	TraceDebug("%s*size:[%d]\n",__FUNCTION__, size);
@@ -164,13 +171,13 @@ int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], d
 		if (candidate[i].code > 0  && i == 0)
 		{
 			X_1[i] = pow(RootOfUnity, numOfNodes);
-			Y_1[i] = EvaluatedRootPoly[i];
+			Y_1[i] = Secret_hj[i][dealer];
 			counter++;
 		}
 		else if (candidate[i].code > 0 )
 		{
 			X_1[counter] = pow(RootOfUnity, i);
-			Y_1[counter] = EvaluatedRootPoly[i];
+			Y_1[counter] = Secret_hj[i][dealer];
 			counter++;
 		}
 	}
@@ -196,14 +203,15 @@ int CalculatePolynomial(double EvaluatedRootPoly[], struct output candidate[], d
 	gsl_spline_free(spline);
 	gsl_interp_accel_free(acc);
 
-	*finale = result;
+	finale[dealer] =(int) round(result) % maxNumberOfMessages;
+	TraceDebug("%s*exit\n",__FUNCTION__);
 	return 0;
 }
 
 /**
  * Build Piece that you will share.
  */
-void BuildPiece(int node, double EvaluatedRootPoly[], char result[])
+void BuildPiece(int node, double Secret_hj[][numOfNodes], char result[])
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
@@ -214,7 +222,7 @@ void BuildPiece(int node, double EvaluatedRootPoly[], char result[])
 		return;
 	}
 
-	length +=sprintf(result, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, EvaluatedRootPoly[proc_id], MESSAGE_DELIMITER);
+	length +=sprintf(result+length, "%d%s%f%s", proc_id, MESSAGE_DELIMITER, Secret_hj[proc_id][dealer], MESSAGE_DELIMITER);
 
 	Traitor(result);
 

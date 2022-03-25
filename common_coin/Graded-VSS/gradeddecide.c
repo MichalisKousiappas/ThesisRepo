@@ -26,8 +26,10 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 						double EvaluatedRootPoly[],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
-						double RootPolynomial[badPlayers])
+						double RootPolynomial[badPlayers],
+						double Secret_hj[][numOfNodes])
 {
+	printf("-------------------SimpleGraded Decide----------------------------\n");
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
@@ -48,7 +50,6 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	memset(BuildedMessage, 0, sizeof(BuildedMessage));
 	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 
-	printf("-------------------SimpleGraded Decide phase 1----------------------------\n");
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
@@ -64,7 +65,9 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 				outArray[distributor].value = 0;
 			}
 		}
-		printf("----------------------------------------\n");
+		#ifdef DEBUG
+			printf("----------------------------------------\n");
+		#endif
 		memset(QBits, 0, sizeof(QBits));
 		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 	}
@@ -75,13 +78,15 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	// Dealer will create the new polynomials while each node waits for the dealer to finish
 	PrepaireNewPolynomials(reqServer, QueryBitsArray, NewPolynomials, polynomials, RootPolynomial);
 
-	printf("-------------------SimpleGraded Decide phase 2----------------------------\n");
 	// Dealer now sends out the new polynomials for each node
 	for (int procNum = 0; procNum < numOfNodes; procNum++)
 	{
 		BuildMessage(procNum, NewPolynomials, BuildedMessage);
 		GradeCast(reqServer, dealer, BuildedMessage, outArray, GradedCastMessage);
-		printf("----------------------------------------\n");
+				
+		#ifdef DEBUG
+			printf("----------------------------------------\n");
+		#endif
 
 		if (outArray[dealer].code > 0 && !IsDealer)
 			ParseMessage(procNum, GradedCastMessage, NewPolynomials);
@@ -105,7 +110,10 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	else
 		PassableMessages = CountSameMessageAgain(reqServer, "Passable", 1);
 
+	// Set accept_ij output and secrete_hj
 	accept = ValidateTally(PassableMessages);
+	Secret_hj[proc_id][dealer] = EvaluatedRootPoly[proc_id];
+
 	TraceInfo("%s*exit[%d]\n", __FUNCTION__, PassableMessages);
 	return accept;
 }
@@ -221,7 +229,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 */
 void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers], char result[])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
 
 	if (!IsDealer)
@@ -245,7 +253,7 @@ void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers
 
 	result[length-1] = '\0';
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
 }
 
 /**
@@ -260,7 +268,7 @@ int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PAR
 		return 1;
 	}
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	char* token = strtok(message, MESSAGE_DELIMITER);
 	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
@@ -280,7 +288,7 @@ int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PAR
 		}
 	}
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return 0;
 }
 
@@ -365,6 +373,6 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 	if (!res)
 		EvaluatedRootPoly[proc_id] = 0;
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, res);
+	TraceInfo("%s*exit[%d][%d]\n", __FUNCTION__, res, dealer);
 	return res;
 }

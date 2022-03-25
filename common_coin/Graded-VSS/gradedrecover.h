@@ -5,7 +5,7 @@
 #include "gradecast.h"
 
 void SimpleGradedRecover(struct servers reqServer[], 
-						double EvaluatedRootPoly[],
+						double Secret_hj[][numOfNodes],
 						struct output candidate[],
 						int tally[]);
 

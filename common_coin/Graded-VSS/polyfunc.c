@@ -9,7 +9,7 @@ void GenerateRandomPoly(int badplayers, double polynomials[][CONFIDENCE_PARAM][b
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
-	srand(time(0));
+	srand(time(0) + proc_id);
 
 	//Calcuate root polynomial
 	for (int i=0; i< badPlayers; i++)

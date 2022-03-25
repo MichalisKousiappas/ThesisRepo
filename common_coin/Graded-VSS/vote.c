@@ -3,27 +3,29 @@
 #include "math.h"
 
 // Local Function Declaration
-void GetAcceptList(int node, char result[]);
-int ParseAcceptList(char *message, struct output DecideOutput);
+void GetAcceptList(int node,struct output DecideOutput[][numOfNodes], char result[]);
+int ParseAcceptList(char *message, struct output DecideOutput[][numOfNodes]);
 
 /**
  * Vote
 */
 void Vote(struct servers reqServer[],
-			struct output DecideOutput,
+			struct output DecideOutput[][numOfNodes],
 			struct output candidate[])
 {
-	char GradedCastMessage[StringSecreteSize];
-	char List[StringSecreteSize];
+	char GradedCastMessage[StringSecreteSize + 1];
+	char List[StringSecreteSize + 1];
 
 	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 	memset(List, 0, sizeof(List));
 
 	printf("-------------------Vote----------------------------\n");
+	TraceInfo("%s*enter\n", __FUNCTION__);
+
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
-		GetAcceptList(distributor, List);
+		GetAcceptList(distributor,DecideOutput, List);
 		GradeCast(reqServer, distributor, List, candidate, GradedCastMessage);
 
 		if (candidate[distributor].code > 0)
@@ -35,18 +37,21 @@ void Vote(struct servers reqServer[],
 				candidate[distributor].value = 0;
 			}
 		}
-		printf("----------------------------------------\n");
+		#ifdef DEBUG
+			printf("----------------------------------------\n");
+		#endif
 		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 		memset(List, 0, sizeof(List));
 	}
+	TraceInfo("%s*exit\n", __FUNCTION__);
 }
 
 /**
  * Return the accept list in string
 */ 
-void GetAcceptList(int node, char result[])
+void GetAcceptList(int node,struct output DecideOutput[][numOfNodes], char result[])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
 
 	if (node != proc_id)
@@ -59,7 +64,7 @@ void GetAcceptList(int node, char result[])
 
 	for(int i = 0; i < numOfNodes; i++)
 	{
-		length += snprintf(result+length , StringSecreteSize-length, "%d%s%d%s", outArray[i].code, MESSAGE_ACCEPT, outArray[i].value, MESSAGE_DELIMITER);
+		length += snprintf(result+length , StringSecreteSize-length, "%d%s%d%s", DecideOutput[proc_id][i].code, MESSAGE_ACCEPT, DecideOutput[proc_id][i].value, MESSAGE_DELIMITER);
 	}
 
 	Traitor(result);
@@ -68,18 +73,19 @@ void GetAcceptList(int node, char result[])
 	length += snprintf(result+length , StringSecreteSize-length, "%s", MESSAGE_DELIMITER);
 	result[length-1] = '\0';
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, length);
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
 }
 
 /**
  * Parse the accept list and check if candidate is valid
 */ 
-int ParseAcceptList(char *message, struct output DecideOutput)
+int ParseAcceptList(char *message, struct output DecideOutput[][numOfNodes])
 {
 	TraceDebug("ParseAcceptList [%s] size:[%ld]\n", message, strlen(message));
 
 	struct output ParsedMessage[numOfNodes];
 	int counter = 0;
+	int Result = 0;
 
 	if (message[strlen(message) - 1] != '|')
 	{
@@ -88,7 +94,7 @@ int ParseAcceptList(char *message, struct output DecideOutput)
 	}
 
 	char* token = strtok(message, ALL_MESSAGE_DELIMITERS);
-	//int Process_id = atoi(token); // not needed for now
+	int Sender = atoi(token);
 
 	// Parse message
 	for (int j = 0; j < numOfNodes; j++)
@@ -113,18 +119,24 @@ int ParseAcceptList(char *message, struct output DecideOutput)
 			printf("%s*i[%d] code[%d] value[%d]\n", __FUNCTION__, i, ParsedMessage[i].code, ParsedMessage[i].value);
 	#endif
 
-	// Count the number of nodes that were accepted
+	// Count the number of nodes that were accepted and fill your array
 	for (int i = 0; i < numOfNodes; i++)
+	{
 		if (ParsedMessage[i].code == 2)
 			counter++;
+		
+		DecideOutput[Sender][i] = ParsedMessage[i];
+	}
 
 	/*
 		Check if the number of accepted nodes are more or equal to (n-t).
 		Check if your code matches their code of you.
 	*/
-	if (!((counter >= (numOfNodes - badPlayers)) && (fabs(ParsedMessage[proc_id].code - DecideOutput.code) < 2)))
-		return 1;
+	if (!((counter >= (numOfNodes - badPlayers)) && (fabs(ParsedMessage[proc_id].code - DecideOutput[proc_id][Sender].code) < 2)))
+		Result = 1;
+	else
+		Result = 0;
 
-	TraceDebug("%s*counter[%d]\n", __FUNCTION__, counter);
-	return 0;
+	TraceDebug("%s*counter[%d][%d]\n", __FUNCTION__, counter, Result);
+	return Result;
 }

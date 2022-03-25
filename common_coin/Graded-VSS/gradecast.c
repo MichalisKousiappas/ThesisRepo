@@ -9,7 +9,7 @@ void GetFromDistributor(struct servers reqServer[], int distributor, char result
  */
 struct output ValidateTally(int tally)
 {
-	TraceInfo("%s*tally:[%d]\n", __FUNCTION__, tally);
+	TraceDebug("%s*tally:[%d]\n", __FUNCTION__, tally);
 	struct output out;
 
 	if (tally >= (2*badPlayers + 1))
@@ -38,7 +38,7 @@ struct output ValidateTally(int tally)
 void GetFromDistributor(struct servers reqServer[], int distributor, char result[])
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
-	char sendBuffer[56];
+	char sendBuffer[8];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 
@@ -58,13 +58,13 @@ void GetFromDistributor(struct servers reqServer[], int distributor, char result
  */
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor)
 {
-	char sendBuffer[StringSecreteSize];
-	char recvBuffer[56];
+	char sendBuffer[StringSecreteSize + 1];
+	char recvBuffer[8];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	// "Secret" binary string
 	sprintf(sendBuffer, "%s", secret);
 
@@ -83,7 +83,7 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;
 	}
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**
@@ -92,7 +92,7 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 */
 void GradeCastPhaseA(struct servers reqServer[], int distributor, const char *message, char result[])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	if (proc_id == distributor)
 	{
@@ -107,7 +107,7 @@ void GradeCastPhaseA(struct servers reqServer[], int distributor, const char *me
 		WaitForDealerSignal(reqServer);
 	}
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**
@@ -120,7 +120,7 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 	int messagesCount = 1;
 	char StringZ[StringSecreteSize + 1];
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
@@ -143,7 +143,7 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 		}
 	}
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, messagesCount);
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, messagesCount);
 	return messagesCount;
 }
 
@@ -157,7 +157,7 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 	int tally = 1;
 	char StringZ[StringSecreteSize + 1];
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
@@ -180,7 +180,7 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 		}
 	}
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, tally);
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, tally);
 	return tally;
 }
 
@@ -192,7 +192,7 @@ void GradeCast(struct servers reqServer[], int distributor, const char *message,
 	int tally = 0;
 	int messagesCount = 0;
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	// Phase A
 	GradeCastPhaseA(reqServer, distributor, message, result);
@@ -209,6 +209,6 @@ void GradeCast(struct servers reqServer[], int distributor, const char *message,
 		tally = CountSameMessageAgain(reqServer, result, 1);
 
 	array[distributor] = ValidateTally(tally);
-	TraceInfo("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, array[distributor].code, array[distributor].value);
+	TraceDebug("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, array[distributor].code, array[distributor].value);
 }
 

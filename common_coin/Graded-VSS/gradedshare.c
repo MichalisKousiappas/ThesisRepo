@@ -11,7 +11,7 @@ char *GetFromDealer(struct servers reqServer[]);
 char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
 {
 	char *result = NULL;
-
+	printf("-------------------SimpleGraded Share----------------------------\n");
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	if (IsDealer)

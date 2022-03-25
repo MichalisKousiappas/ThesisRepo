@@ -29,11 +29,11 @@ void ReadIPFromFile(char serversIP[][256], char *filename)
 		}
 
 		hostsBuffer[strcspn(hostsBuffer, "\n")] = 0;
-		TraceDebug("[%d] [%s]\n", i, hostsBuffer);
+		//TraceDebug("[%d] [%s]\n", i, hostsBuffer);
 		ip = strtok(hostsBuffer, " ");
-		TraceDebug("\t[%s]\n", ip);
+		//TraceDebug("\t[%s]\n", ip);
 		port = strtok(NULL, " ");
-		TraceDebug("\t[%s]\n", port);
+		//TraceDebug("\t[%s]\n", port);
 		sprintf(serversIP[i], "tcp://%s:%s", ip, port);
 	}
 
@@ -51,7 +51,7 @@ void ReadIPFromFile(char serversIP[][256], char *filename)
 */
 void PrepareConnections(void *context, struct servers reqServer[], char serversIP[][256])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	//Create connection to communicate with other processes
 	for(int i = 0; i < numOfNodes; i++)
@@ -70,7 +70,7 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 	int rc = zmq_bind(reqServer[proc_id].value, serversIP[proc_id]);
 	assert(rc == 0);
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**
@@ -78,17 +78,11 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 */
 void ValidateInput(int argc)
 {
-	if (argc != 4)
+	if (argc != 3)
 	{
 		printf("not enough arguments\n");
-		printf("Usage: Graded-Cast.o <proc id> <number of nodes> <dealer>\n");
+		printf("Usage: Graded-VSS.o <proc id> <number of nodes>\n");
 		exit(-1);
-	}
-
-	if ((dealer > numOfNodes -1) || (dealer < 0))
-	{
-		printf("dealer process id not valid\n");
-		exit(-3);
 	}
 
 	if ((proc_id > numOfNodes -1) || (proc_id < 0))
@@ -153,7 +147,8 @@ void init(void *context,
 		double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		double RootPoly[],
 		double EvaluatedRootPoly[],
-		double RootPolynomial[])
+		double RootPolynomial[],
+		double Secret_hj[][numOfNodes])
 {
 	char filename[35] = {0};
 
@@ -174,6 +169,10 @@ void init(void *context,
 			for (int j = 0; j < CONFIDENCE_PARAM; j++)
 				polyEvals[l][i][j] = 0;
 
+	for (int i = 0; i < numOfNodes; i++)
+		for (int j = 0; j < CONFIDENCE_PARAM; j++)
+			Secret_hj[i][j] = 0;
+
 	for (int i = 0; i < badPlayers; i++)
 		RootPoly[i] = 0;
 
@@ -184,8 +183,9 @@ void init(void *context,
 	outArray = calloc(numOfNodes, sizeof(struct output));
 
 	//maximume number of messages. if all processors are good
-	maxNumberOfMessages = (numOfNodes * (2*numOfNodes + 1)) * 2 + numOfNodes; //as of now this is the max
-	
+	//as of now this is the max
+	maxNumberOfMessages = (numOfNodes+(numOfNodes*3)*numOfNodes+2*numOfNodes)*numOfNodes+(numOfNodes*numOfNodes*numOfNodes)+(numOfNodes*numOfNodes)*4 +(numOfNodes*2) - 1;
+
 	/* 
 		max characters in message because dealer sends out numOfNodes doubles +1 for the root poly
 		multiplied by the CONFIDENCE_PARAM which is the number of doubles per numOfNodes
@@ -208,15 +208,6 @@ void init(void *context,
 	if (RootOfUnity > 0)
 		RootOfUnity = (RootOfUnity*-1);
 
-	if (IsDealer)
-	{
-		GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
-		printPolynomials(badPlayers, polynomials, RootPolynomial);
-		printRootPolyOnly(RootPolynomial);
-		evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
-		printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
-	}
-
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f]\n",
-			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity);
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f] ConfidenceParam[%d]\n",
+			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity, CONFIDENCE_PARAM);
 }

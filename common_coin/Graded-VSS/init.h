@@ -10,7 +10,8 @@ void init(void *context,
 		double polyEvals[][numOfNodes][CONFIDENCE_PARAM],
 		double RootPoly[],
 		double EvaluatedRootPoly[],
-		double RootPolynomial[]);
+		double RootPolynomial[],
+		double Secret_hj[][numOfNodes]);
 
 void ValidateInput(int argc);
 

@@ -46,7 +46,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	sprintf(sendBuffer, "%s", commonString);
 
@@ -64,7 +64,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 		if (memcmp(commonString, "OK", 2) && commonString[0])
 			messages++;
 	}
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**

@@ -20,7 +20,7 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers]);
 
 /**
- * Start the Simple Graded - Decide phase
+ * Start the Simple Graded
  */
 struct output SimpleGradedDecide(struct servers reqServer[],
 						double polyEvals[][numOfNodes][CONFIDENCE_PARAM],

@@ -8,7 +8,7 @@ void GetTime(char res[])
 	gettimeofday(&timeVar, NULL);
 	time(&t);
 	strftime(res, 21, "%d/%m/%Y %T", localtime(&t));
-	sprintf(res+19, ".%ld", timeVar.tv_usec);
+	sprintf(res+19, ".%03ld", timeVar.tv_usec);
 	res[23] = '\0'; //force null otherwise it will print more than 3 digits
 }
 
@@ -22,6 +22,7 @@ void WaitForDealerSignal(struct servers syncServer[])
 
 	TraceDebug("%s*enter\n", __FUNCTION__);
 	zmq_recv(syncServer[proc_id].value, temp, 3, 0);
+	zmq_send(syncServer[proc_id].value, temp, 3, 0);
 	TraceDebug("%s*exit[%s]\n", __FUNCTION__, temp);
 }
 
@@ -38,17 +39,19 @@ void Traitor(char *sendBuffer)
 }
 
 /**
-  Send the same message to all other nodes -- Doesn't wait for an answer
+  Send the same message to all other nodes
  */
 void Distribute(struct servers reqServer[], const char *commonString)
 {
-	char sendBuffer[StringSecreteSize];
+	char sendBuffer[10];
+	char recvBuffer[10];
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
+	memset(recvBuffer, 0, sizeof(recvBuffer));
 
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
-	sprintf(sendBuffer, "%s", commonString);
+	snprintf(sendBuffer, sizeof(sendBuffer) - 1, "%s", commonString);
 
 	if (memcmp(commonString, "OK", 2) && commonString[0])
 		messages++;
@@ -59,10 +62,13 @@ void Distribute(struct servers reqServer[], const char *commonString)
 		if (i == proc_id) continue;
 
 		TraceDebug("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
-		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
+		zmq_send(reqServer[i].value, sendBuffer, sizeof(sendBuffer), 0);
+		zmq_recv(reqServer[i].value, recvBuffer, sizeof(recvBuffer)-1, 0);
 
 		if (memcmp(commonString, "OK", 2) && commonString[0])
 			messages++;
+
+		memset(recvBuffer, 0, sizeof(recvBuffer));
 	}
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }

@@ -54,10 +54,8 @@ void SimpleGradedRecover(struct servers reqServer[],
 		CalculatePolynomial(Secret_hj, candidate, finale);	
 	}
 
-	#ifdef DEBUG
-		for (int i = 0; i < numOfNodes; i++)
-			printf("i:[%d] finale:[%f]\n", i, round(finale[i]));
-	#endif
+	for (int i = 0; i < numOfNodes; i++)
+		printf("i:[%d] finale:[%f]\n", i, round(finale[i]));
 
 	for (int i = 0; i < numOfNodes; i++)
 	{

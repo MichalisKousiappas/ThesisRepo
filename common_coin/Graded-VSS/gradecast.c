@@ -42,13 +42,13 @@ void GetFromDistributor(struct servers reqServer[], int distributor, char result
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 
-	sprintf(sendBuffer, "%d %s", proc_id, "OK");
-
-	zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0);
-	TraceDebug("Received secret from distributor: [%s]\n", result);
+	sprintf(sendBuffer, "%d", proc_id);
 
 	TraceDebug("Sending data as client[%d] to distributor[%d]: [%s]\n", proc_id, distributor, sendBuffer);
 	zmq_send(reqServer[distributor].value, sendBuffer, strlen(sendBuffer), 0);
+
+	zmq_recv(reqServer[distributor].value, result, StringSecreteSize, 0);
+	TraceDebug("Received secret from distributor: [%s]\n", result);
 
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
@@ -74,11 +74,11 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 	{
 		if (i == proc_id) continue;
 
-		TraceDebug("Sending data as distributor to [%d]: [%s]\n", i, sendBuffer);
-		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
-
-		zmq_recv(reqServer[distributor].value, recvBuffer, sizeof(recvBuffer) - 1, 0);
+		zmq_recv(reqServer[proc_id].value, recvBuffer, sizeof(recvBuffer) - 1, 0);
 		TraceDebug("Received confirmation as distributor[%d]: [%s]\n", distributor, recvBuffer);
+
+		TraceDebug("Sending data as distributor to [%d]: [%s]\n", atoi(recvBuffer), sendBuffer);
+		zmq_send(reqServer[proc_id].value, sendBuffer, StringSecreteSize, 0);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;

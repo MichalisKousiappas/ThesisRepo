@@ -20,7 +20,7 @@ int maxNumberOfMessages;
 int StringSecreteSize;
 int PrimeCongruent;
 double RootOfUnity;
-char TimeVar[25];
+char TimeVar[25] = {0};
 int CONFIDENCE_PARAM;
 
 int main (int argc,char *argv[])
@@ -71,27 +71,25 @@ int main (int argc,char *argv[])
 	// Begin Vote protocol
 	Vote(commonChannel, DecideOutput, candidate);
 
-	#ifdef DEBUG
-		for(int i = 0; i < numOfNodes; i++)
-			printf("candidate[%d]: [%d]\n", i, candidate[i].code);
-	#endif
+	for(int i = 0; i < numOfNodes; i++)
+		printf("candidate[%d]: [%d]\n", i, candidate[i].code);
 
 	// Begin Graded-Recover phase
 	SimpleGradedRecover(commonChannel, Secret_hj, candidate, tally);
-/*
+
 	#ifdef DEBUG
 		for(int i = 0; i < numOfNodes; i++)
 			for(int k = 0; k < numOfNodes; k++)
 			printf("proc:[%d] dealer[%d] secret:[%f]\n", i, k, Secret_hj[i][k]);
 	#endif
-*/
+
 	TraceInfo("total messages send: [%d]\n", messages);
 	TraceInfo("tally is [%d]\n", tally[proc_id]);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)
 	{
-		//TraceDebug("Closed connection[%d]\n", i);
+		TraceDebug("Closed connection[%d][%d]\n", i, DecideOutput[0][0].code);
 		zmq_close(commonChannel[i].value);
 	}
 	free(outArray);

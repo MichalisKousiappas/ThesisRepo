@@ -58,15 +58,15 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 	{
 		if (i == proc_id || (IsDealer && i == numOfNodes)) continue;
 
-		reqServer[i].value = zmq_socket(context, ZMQ_PUSH);
-		reqServer[i].type = ZMQ_PUSH;
+		reqServer[i].value = zmq_socket(context, ZMQ_REQ);
+		reqServer[i].type = ZMQ_REQ;
 		zmq_connect(reqServer[i].value, serversIP[i]);
 	}
 
 	//Create connection for others to communicate with you
 	TraceDebug("%s*%d: %s\n", __FUNCTION__, proc_id, serversIP[proc_id]);
-	reqServer[proc_id].value = zmq_socket(context, ZMQ_PULL);
-	reqServer[proc_id].type = ZMQ_PULL;
+	reqServer[proc_id].value = zmq_socket(context, ZMQ_REP);
+	reqServer[proc_id].type = ZMQ_REP;
 	int rc = zmq_bind(reqServer[proc_id].value, serversIP[proc_id]);
 	assert(rc == 0);
 

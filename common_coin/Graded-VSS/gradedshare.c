@@ -67,6 +67,7 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 {
 	char sendBuffer[StringSecreteSize + 1];
 	char recvBuffer[56];
+	int Sender;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -78,16 +79,19 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 	{
 		if (i == proc_id) continue;
 
-		// Build secret for each node
-		sprintf(sendBuffer, "%s", BuildSecretString(i, polyEvals, EvaluatedRootPoly));
-		
-		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
-		TraceDebug("Send data as dealer to [%d]: [%s]\n", i, sendBuffer);
-
-		zmq_recv(reqServer[dealer].value, recvBuffer, sizeof(recvBuffer) - 1, 0);
+		zmq_recv(reqServer[proc_id].value, recvBuffer, sizeof(recvBuffer) - 1, 0);
 		TraceDebug("Received data as dealer: [%s]\n", recvBuffer);
 
+		Sender = atoi(recvBuffer);
+
+		// Build secret for each node
+		sprintf(sendBuffer, "%s", BuildSecretString(Sender, polyEvals, EvaluatedRootPoly));
+
+		zmq_send(reqServer[proc_id].value, sendBuffer, StringSecreteSize, 0);
+		TraceDebug("Send data as dealer to [%d]: [%s]\n", Sender, sendBuffer);
+
 		memset(recvBuffer, 0, sizeof(recvBuffer));
+		memset(sendBuffer, 0, sizeof(sendBuffer));
 		messages++;
 	}
 	TraceInfo("%s*exit\n", __FUNCTION__);
@@ -106,13 +110,13 @@ char *GetFromDealer(struct servers reqServer[])
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(result, 0, sizeof(StringSecreteSize));
 
-	sprintf(sendBuffer, "%d %s", proc_id, "OK");
-
-	zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0);
-	TraceDebug("Received secret from dealer: [%s]\n", result);
+	sprintf(sendBuffer, "%d ", proc_id);
 
 	TraceDebug("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
 	zmq_send(reqServer[dealer].value, sendBuffer, strlen(sendBuffer), 0);
+
+	zmq_recv(reqServer[dealer].value, result, StringSecreteSize, 0);
+	TraceDebug("Received secret from dealer: [%s]\n", result);
 
 	TraceInfo("%s*exit\n", __FUNCTION__);
 	return result;

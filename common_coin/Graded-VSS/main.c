@@ -20,7 +20,7 @@ int maxNumberOfMessages;
 int StringSecreteSize;
 int PrimeCongruent;
 double RootOfUnity;
-char TimeVar[25];
+char TimeVar[25] = {0};
 int CONFIDENCE_PARAM;
 
 int main (int argc,char *argv[])

@@ -12,7 +12,7 @@ char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNod
 {
 	char *result = NULL;
 	printf("-------------------SimpleGraded Share----------------------------\n");
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	if (IsDealer)
 	{
@@ -29,7 +29,7 @@ char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNod
 		WaitForDealerSignal(syncServer);
 	}
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return result;
 }
 
@@ -71,7 +71,7 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
@@ -90,7 +90,7 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;
 	}
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**
@@ -99,7 +99,7 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 */
 char *GetFromDealer(struct servers reqServer[])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 	char *result = (char*) malloc(StringSecreteSize + 1);
 	char sendBuffer[56];
 
@@ -114,7 +114,7 @@ char *GetFromDealer(struct servers reqServer[])
 	TraceDebug("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
 	zmq_send(reqServer[dealer].value, sendBuffer, strlen(sendBuffer), 0);
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return result;
 }
 

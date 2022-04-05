@@ -58,7 +58,7 @@ void Distribute(struct servers reqServer[], const char *commonString)
 	{
 		if (i == proc_id) continue;
 
-		TraceDebug("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
+		//TraceDebug("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
 		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
 
 		if (memcmp(commonString, "OK", 2) && commonString[0])

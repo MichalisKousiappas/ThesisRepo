@@ -30,7 +30,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 						double Secret_hj[][numOfNodes])
 {
 	printf("-------------------SimpleGraded Decide----------------------------\n");
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	//TraceInfo("%s*enter\n", __FUNCTION__);
 
 	double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
 	double NewPolynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers];
@@ -124,13 +124,13 @@ struct output SimpleGradedDecide(struct servers reqServer[],
  */
 void GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double QueryBitsArray[], char result[])
 {
-	TraceDebug("%s*enter\n", __FUNCTION__);
+	//TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
 	int randomNum = rand() % (MAX_COEFICIENT/2);
 
 	if (node != proc_id)
 	{
-		TraceDebug("%s*exit*not my turn yet\n", __FUNCTION__);
+		//TraceDebug("%s*exit*not my turn yet\n", __FUNCTION__);
 		return;
 	}
 
@@ -150,7 +150,7 @@ void GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], do
 	length += snprintf(result+length , StringSecreteSize-length, "%s", MESSAGE_DELIMITER);
 	result[length-1] = '\0';
 
-	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
+	//TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
 }
 
 /**
@@ -159,7 +159,7 @@ void GetQueryBits(int node, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], do
  */
 int ParseQueryBitsMessage(char *message, double array[][CONFIDENCE_PARAM])
 {
-	TraceDebug("ParseQueryBitsMessage [%s] size:[%ld]\n", message, strlen(message));
+	//TraceDebug("ParseQueryBitsMessage [%s] size:[%ld]\n", message, strlen(message));
 
 	if (message[strlen(message) - 1] != '|')
 	{
@@ -198,7 +198,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	// Print the Query bits you have when debugging info is on
-	PrintQueryBits(QueryBitsArray);
+	//PrintQueryBits(QueryBitsArray);
 
 	if (IsDealer)
 	{
@@ -213,7 +213,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 			}
 		}
 		TraceDebug("%s*NEW POLYNOMIALS\n", __FUNCTION__);
-		printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
+		//printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
 		Distribute(syncServer, "OK");
 	}
 	else
@@ -229,12 +229,12 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 */
 void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers], char result[])
 {
-	TraceDebug("%s*enter\n", __FUNCTION__);
+	//TraceDebug("%s*enter\n", __FUNCTION__);
 	int length = 0;
 
 	if (!IsDealer)
 	{
-		TraceDebug("%s*exit*Not my job\n", __FUNCTION__);
+		//TraceDebug("%s*exit*Not my job\n", __FUNCTION__);
 		return;
 	}
 
@@ -253,7 +253,7 @@ void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers
 
 	result[length-1] = '\0';
 
-	TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
+	//TraceDebug("%s*exit[%d]\n", __FUNCTION__, length);
 }
 
 /**
@@ -261,14 +261,14 @@ void BuildMessage(int node, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers
  */
 int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PARAM][badPlayers])
 {
-	TraceDebug("ParseMessage [%s] size:[%ld]\n", message, strlen(message));
+	//TraceDebug("ParseMessage [%s] size:[%ld]\n", message, strlen(message));
 	if (message[strlen(message) - 1] != '|')
 	{
 		TraceInfo("%s*exit*Invalid Message\n", __FUNCTION__);
 		return 1;
 	}
 
-	TraceDebug("%s*enter\n", __FUNCTION__);
+//	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	char* token = strtok(message, MESSAGE_DELIMITER);
 	TraceDebug("%s*token[%d]\n", __FUNCTION__, atoi(token));
@@ -288,7 +288,7 @@ int ParseMessage(int node, char *message, double NewPolynomials[][CONFIDENCE_PAR
 		}
 	}
 
-	TraceDebug("%s*exit\n", __FUNCTION__);
+	//TraceDebug("%s*exit\n", __FUNCTION__);
 	return 0;
 }
 
@@ -329,7 +329,7 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 	int res;
 	int power;
 
-	printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
+	//printPolynomials(badPlayers, NewPolynomials, RootPolynomial);
 
 	if (proc_id == 0)
 		power = numOfNodes;
@@ -342,17 +342,19 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 			continue;
 
 		// Enable in case you want excesive debugging.
+		/*
 		#ifdef DEBUG
 			printf("i:[%d]\n",i);
 		#endif
+		*/
 		for (int j = 0; j < CONFIDENCE_PARAM; j++)
 		{
 			counter1++;
 
 			Pij = gsl_poly_eval(NewPolynomials[i][j], badPlayers, pow(RootOfUnity, power));
 			TplusQmultiS = polyEvals[proc_id][i][j] + QueryBitsArray[i][j] * EvaluatedRootPoly[proc_id];
-			TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
-			i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
+			//TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
+			//			i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 
 			// limit the precision check to 3 bits instead of 4. This is because the calculations can't be this precise
 			if ( fabs(Pij - TplusQmultiS) <= 0.001)
@@ -364,9 +366,11 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 				TraceDebug("Error here\n");
 			}
 		}
+		/*
 		#ifdef DEBUG
 			printf("\n");
 		#endif
+		*/		
 	}
 	res = ((counter1 == counter2) && (counter1 != 0));
 

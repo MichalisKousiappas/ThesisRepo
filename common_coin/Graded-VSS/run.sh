@@ -5,7 +5,7 @@
 
 echo
 
-numofnodes=30
+numofnodes=20
 
 # kill any processes that is still alive from previous run
 pidof Graded-VSS.o && killall Graded-VSS.o && sleep 1

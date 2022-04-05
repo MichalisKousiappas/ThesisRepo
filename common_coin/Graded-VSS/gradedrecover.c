@@ -50,14 +50,14 @@ void SimpleGradedRecover(struct servers reqServer[],
 			#endif
 			memset(BuildedPiece, 0, sizeof(BuildedPiece));
 			memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
-		}
-		CalculatePolynomial(Secret_hj, candidate, finale);	
+		}		
 	}
 
-	#ifdef DEBUG
-		for (int i = 0; i < numOfNodes; i++)
-			printf("i:[%d] finale:[%f]\n", i, round(finale[i]));
-	#endif
+	for (dealer = 0; dealer < numOfNodes; dealer++)
+		CalculatePolynomial(Secret_hj, candidate, finale);
+
+	for (int i = 0; i < numOfNodes; i++)
+		printf("i:[%d] finale:[%f]\n", i, round(finale[i]));
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
@@ -145,7 +145,7 @@ int CalculatePolynomial(double Secret_hj[][numOfNodes], struct output candidate[
 
 	if (candidate[dealer].code == 0)
 	{
-		TraceInfo("no need to calculate for [%d] process\n", dealer);
+		TraceInfo("no need to calculate for process [%d]\n", dealer);
 		finale[dealer] = 0;
 		return 2;
 	}
@@ -156,9 +156,9 @@ int CalculatePolynomial(double Secret_hj[][numOfNodes], struct output candidate[
 
 	TraceDebug("%s*size:[%d]\n",__FUNCTION__, size);
 
-	if (size <= 0)
+	if (size < (numOfNodes - badPlayers))
 	{
-		TraceInfo("I can't do this man...\n");
+		TraceInfo("Not enough data\n");
 		return 1;
 	}
 

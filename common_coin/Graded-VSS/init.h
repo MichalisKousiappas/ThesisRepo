@@ -11,7 +11,8 @@ void init(void *context,
 		double RootPoly[],
 		double EvaluatedRootPoly[],
 		double RootPolynomial[],
-		double Secret_hj[][numOfNodes]);
+		double Secret_hj[][numOfNodes],
+		int Round);
 
 void ValidateInput(int argc);
 

@@ -29,7 +29,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 						double RootPolynomial[badPlayers],
 						double Secret_hj[][numOfNodes])
 {
-	printf("-------------------SimpleGraded Decide----------------------------\n");
+	//printf("-------------------SimpleGraded Decide----------------------------\n");
 	//TraceInfo("%s*enter\n", __FUNCTION__);
 
 	double QueryBitsArray[numOfNodes][CONFIDENCE_PARAM];
@@ -114,7 +114,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	accept = ValidateTally(PassableMessages);
 	Secret_hj[proc_id][dealer] = EvaluatedRootPoly[proc_id];
 
-	TraceInfo("%s*exit[%d]\n", __FUNCTION__, PassableMessages);
+	TraceDebug("%s*exit[%d]\n", __FUNCTION__, PassableMessages);
 	return accept;
 }
 
@@ -195,7 +195,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 						double polynomials[numOfNodes][CONFIDENCE_PARAM][badPlayers],
 						double RootPolynomial[badPlayers])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	// Print the Query bits you have when debugging info is on
 	//PrintQueryBits(QueryBitsArray);
@@ -221,7 +221,7 @@ void PrepaireNewPolynomials(struct servers syncServer[],
 		WaitForDealerSignal(syncServer);
 	}
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**
@@ -322,7 +322,7 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 						double EvaluatedRootPoly[],
 						double RootPolynomial[badPlayers])
 {
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	double Pij, TplusQmultiS;
 	int counter1 = 0, counter2 = 0;
@@ -377,6 +377,6 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 	if (!res)
 		EvaluatedRootPoly[proc_id] = 0;
 
-	TraceInfo("%s*exit[%d][%d]\n", __FUNCTION__, res, dealer);
+	TraceDebug("%s*exit[%d][%d]\n", __FUNCTION__, res, dealer);
 	return res;
 }

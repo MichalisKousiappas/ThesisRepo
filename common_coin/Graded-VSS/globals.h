@@ -13,7 +13,7 @@
 #define ALL_MESSAGE_DELIMITERS "|:"
 #define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
 #define MESSAGE_ACCEPT ":"
-#define TRAITORS 0 // Controls whether bad processes will be ON (simulated)
+#define TRAITORS 1 // Controls whether bad processes will be ON (simulated)
 
 /*
  Used to control how big the coeficient of the polyonims can go.

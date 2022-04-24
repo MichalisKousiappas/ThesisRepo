@@ -148,16 +148,26 @@ void init(void *context,
 		double RootPoly[],
 		double EvaluatedRootPoly[],
 		double RootPolynomial[],
-		double Secret_hj[][numOfNodes])
+		double Secret_hj[][numOfNodes],
+		int Round)
 {
 	char filename[35] = {0};
 
-	// Fill serversIP
-	memcpy(filename, "hosts.txt", sizeof(filename));
-	ReadIPFromFile(serversIP, filename);
+	if (Round == 0)
+	{
+		// Fill serversIP
+		memcpy(filename, "hosts.txt", sizeof(filename));
+		ReadIPFromFile(serversIP, filename);
 
-	//connect to all other nodes
-	PrepareConnections(context, reqServer, serversIP);
+		//connect to all other nodes
+		PrepareConnections(context, reqServer, serversIP);
+
+		// Cheap way to make global array with variable length
+		outArray = calloc(numOfNodes, sizeof(struct output));
+	}
+
+	// Reset Messages send
+	messages = 0;
 
 	for (int l = 0; l< numOfNodes; l++)
 		for (int i = 0; i < CONFIDENCE_PARAM; i++)
@@ -178,9 +188,6 @@ void init(void *context,
 
 	for (int i = 0; i < numOfNodes; i++)
 		EvaluatedRootPoly[i] = 0;
-
-	// Cheap way to make global array with variable length
-	outArray = calloc(numOfNodes, sizeof(struct output));
 
 	//maximume number of messages. if all processors are good
 	//as of now this is the max
@@ -208,6 +215,7 @@ void init(void *context,
 	if (RootOfUnity > 0)
 		RootOfUnity = (RootOfUnity*-1);
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f] ConfidenceParam[%d]\n",
-			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity, CONFIDENCE_PARAM);
+	if (Round == 0)	
+		TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f] ConfidenceParam[%d]\n",
+				   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity, CONFIDENCE_PARAM);
 }

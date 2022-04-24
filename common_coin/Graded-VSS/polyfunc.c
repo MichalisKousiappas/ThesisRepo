@@ -140,7 +140,7 @@ void printEvaluatedPolys(int numOfNodes, double polyEvals[][numOfNodes][CONFIDEN
 */
 void printRootPolyOnly(double RootPoly[])
 {
-	#ifdef DEBUG
+	#ifndef DEBUG
 		return;
 	#endif
 

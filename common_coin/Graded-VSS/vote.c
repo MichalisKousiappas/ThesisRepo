@@ -19,8 +19,8 @@ void Vote(struct servers reqServer[],
 	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 	memset(List, 0, sizeof(List));
 
-	printf("-------------------Vote----------------------------\n");
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	//printf("-------------------Vote----------------------------\n");
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
@@ -43,7 +43,7 @@ void Vote(struct servers reqServer[],
 		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 		memset(List, 0, sizeof(List));
 	}
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
 /**

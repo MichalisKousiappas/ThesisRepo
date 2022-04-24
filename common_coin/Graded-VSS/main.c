@@ -44,49 +44,48 @@ int main (int argc,char *argv[])
 	ValidateInput(argc);
 	void *context = zmq_ctx_new();
 
-	//Initialize variables
-	init(context, commonChannel, serversIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly, RootPolynomial, Secret_hj);
-
-	for (dealer = 0; dealer < numOfNodes; dealer++)
+	for(int Round = 0; Round < 5; Round++)
 	{
-		if (IsDealer)
+		TraceInfo("Starting Round[%d]\n", Round);
+		//Initialize variables
+		init(context, commonChannel, serversIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly, RootPolynomial, Secret_hj, Round);
+
+		for (dealer = 0; dealer < numOfNodes; dealer++)
 		{
-			TraceDebug("Generating polynomials...\n");
-			GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
-			printPolynomials(badPlayers, polynomials, RootPolynomial);
-			printRootPolyOnly(RootPolynomial);
-			evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
-			printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
-			TraceDebug("Done\n");
+			if (IsDealer)
+			{
+				TraceDebug("Generating polynomials...\n");
+				GenerateRandomPoly(badPlayers, polynomials, RootPolynomial);
+				printPolynomials(badPlayers, polynomials, RootPolynomial);
+				printRootPolyOnly(RootPolynomial);
+				evaluatePolynomials(badPlayers, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly);
+				printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
+				TraceDebug("Done\n");
+			}
+
+			// Begin the Graded-Share protocol
+			secret = SimpleGradedShare(commonChannel, polyEvals, EvaluatedRootPoly);
+			ParseSecret(secret, polyEvals, EvaluatedRootPoly);
+
+			// Begin the Graded-Decide protocol
+			DecideOutput[proc_id][dealer] = SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial, Secret_hj);
 		}
 
-		// Begin the Graded-Share protocol
-		secret = SimpleGradedShare(commonChannel, polyEvals, EvaluatedRootPoly);
-		ParseSecret(secret, polyEvals, EvaluatedRootPoly);
+		// Begin Vote protocol
+		Vote(commonChannel, DecideOutput, candidate);
 
-		// Begin the Graded-Decide protocol
-		DecideOutput[proc_id][dealer] = SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial, Secret_hj);
+		#ifdef DEBUG
+			for(int i = 0; i < numOfNodes; i++)
+				printf("candidate[%d]: [%d]\n", i, candidate[i].code);
+		#endif
+
+		// Begin Graded-Recover phase
+		SimpleGradedRecover(commonChannel, Secret_hj, candidate, tally);
+
+		TraceInfo("total messages send: [%d]\n", messages);
+		TraceInfo("tally is [%d]\n", tally[proc_id]);
+		TraceInfo("Round[%d] finished\n", Round);
 	}
-
-	// Begin Vote protocol
-	Vote(commonChannel, DecideOutput, candidate);
-
-	#ifdef DEBUG
-		for(int i = 0; i < numOfNodes; i++)
-			printf("candidate[%d]: [%d]\n", i, candidate[i].code);
-	#endif
-
-	// Begin Graded-Recover phase
-	SimpleGradedRecover(commonChannel, Secret_hj, candidate, tally);
-/*
-	#ifdef DEBUG
-		for(int i = 0; i < numOfNodes; i++)
-			for(int k = 0; k < numOfNodes; k++)
-			printf("proc:[%d] dealer[%d] secret:[%f]\n", i, k, Secret_hj[i][k]);
-	#endif
-*/
-	TraceInfo("total messages send: [%d]\n", messages);
-	TraceInfo("tally is [%d]\n", tally[proc_id]);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)

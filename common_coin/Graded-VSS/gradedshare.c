@@ -11,7 +11,7 @@ char *GetFromDealer(struct servers reqServer[]);
 char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
 {
 	char *result = NULL;
-	printf("-------------------SimpleGraded Share----------------------------\n");
+	//printf("-------------------SimpleGraded Share----------------------------\n");
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	if (IsDealer)
@@ -127,7 +127,7 @@ int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], 
 	if (IsDealer)
 		return 0;
 
-	TraceInfo("%s*enter\n", __FUNCTION__);
+	TraceDebug("%s*enter\n", __FUNCTION__);
 
 	if (secret[strlen(secret) - 1] != '|')
 	{
@@ -155,6 +155,6 @@ int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], 
 
 	// When debugging is on, printf the parsed message
 	printEvaluatedPolys(numOfNodes, polyEvals, EvaluatedRootPoly);
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceDebug("%s*exit\n", __FUNCTION__);
 	return 0;
 }

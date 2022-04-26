@@ -5,7 +5,7 @@
 
 echo
 
-numofnodes=20
+numofnodes=3
 
 # kill any processes that is still alive from previous run
 pidof Graded-VSS.o && killall Graded-VSS.o && sleep 1
@@ -20,7 +20,11 @@ for i in $(seq 0 $((numofnodes-1))); do ./Graded-VSS.o $i $numofnodes > result$i
 # wait for them to finish
 wait
 
+grep -ohi "SimpleGradedRecover\*exit\[.*\]" result* --color=auto | sort | uniq
+grep -ohi "tally is \[.*\]" result* --color=auto | sort | uniq
+
 spd-say -i -40 done
+sleep 1
 exit
 # Check processes output
 echo "Parameters:"
@@ -38,7 +42,6 @@ echo -n "number of processes that got it: "
 grep -i "finale" result* | uniq | wc -l
 
 echo -e "tally's were: "
-grep -ohi "tally is \[.*\]" result* --color=auto | sort | uniq
 
 # tell me when you are done
 spd-say -i -40 done

@@ -16,10 +16,10 @@ void SimpleGradedRecover(struct servers reqServer[],
 						struct output candidate[],
 						int tally[])
 {
-	int flag = 0;
 	double finale[numOfNodes];
 	char GradedCastMessage[StringSecreteSize];
 	char BuildedPiece[StringSecreteSize];
+	double sum = 0;
 
 	memset(BuildedPiece, 0, sizeof(BuildedPiece));
 	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
@@ -57,26 +57,19 @@ void SimpleGradedRecover(struct servers reqServer[],
 		CalculatePolynomial(Secret_hj, candidate, finale);
 
 	for (int i = 0; i < numOfNodes; i++)
-		printf("i:[%d] finale:[%f]\n", i, round(finale[i]));
+		TraceInfo("i:[%d] finale:[%f]\n", i, finale[i]);
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (candidate[i].code == 0)
-		{
-			tally[i] = 0;
 			continue;
-		}
 
-		tally[i] = ((int) round(finale[i]) % maxNumberOfMessages > 0) ? 1 : 0;
-
-		if (tally[i] == 0)
-			flag = 1;
+		sum += finale[i];
 	}
 
-	if (flag)
-		memset(tally, 0, numOfNodes);
+	*tally = ((int) round(sum) % maxNumberOfMessages > 0) ? 1 : 0;
 
-	TraceInfo("%s*exit\n", __FUNCTION__);
+	TraceInfo("%s*exit[%f]\n", __FUNCTION__, sum);
 	printf("----------------------------------------\n");
 }
 

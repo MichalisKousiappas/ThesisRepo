@@ -39,7 +39,7 @@ int main (int argc,char *argv[])
 	char *secret;
 	struct output candidate[numOfNodes];
 	struct output DecideOutput[numOfNodes][numOfNodes]; //rows are the process, columns are the dealer
-	int tally[numOfNodes];
+	int tally;
 
 	ValidateInput(argc);
 	void *context = zmq_ctx_new();
@@ -77,7 +77,7 @@ int main (int argc,char *argv[])
 	#endif
 
 	// Begin Graded-Recover phase
-	SimpleGradedRecover(commonChannel, Secret_hj, candidate, tally);
+	SimpleGradedRecover(commonChannel, Secret_hj, candidate, &tally);
 /*
 	#ifdef DEBUG
 		for(int i = 0; i < numOfNodes; i++)
@@ -86,7 +86,7 @@ int main (int argc,char *argv[])
 	#endif
 */
 	TraceInfo("total messages send: [%d]\n", messages);
-	TraceInfo("tally is [%d]\n", tally[proc_id]);
+	TraceInfo("tally is [%d]\n", tally);
 
 	// clean up your mess when you are done
 	for(int i = 0; i < numOfNodes; i++)

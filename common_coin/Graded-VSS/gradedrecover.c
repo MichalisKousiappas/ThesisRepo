@@ -58,7 +58,7 @@ void SimpleGradedRecover(struct servers reqServer[],
 
 	for (int i = 0; i < numOfNodes; i++)
 		TraceDebug("i:[%d] finale:[%f]\n", i, round(finale[i]));
-
+/*
 	for (int i = 0; i < numOfNodes; i++)
 	{
 		if (candidate[i].code == 0)
@@ -72,7 +72,7 @@ void SimpleGradedRecover(struct servers reqServer[],
 		if (tally[i] == 0)
 			flag = 1;
 	}
-
+*/
 	double sum = 0;
 	for (int i = 0; i < numOfNodes; i++)
 	{
@@ -85,7 +85,8 @@ void SimpleGradedRecover(struct servers reqServer[],
 		sum += finale[i];
 	}
 
-	TraceInfo("the sum[%f] the tally:[%d]\n", sum, ((int) round(sum) % maxNumberOfMessages > 0) ? 1 : 0);
+	tally[proc_id] = ((int) round(sum) % maxNumberOfMessages > 0) ? 1 : 0;
+	TraceInfo("the sum[%f]\n", sum);
 
 	if (flag)
 		memset(tally, 0, numOfNodes);

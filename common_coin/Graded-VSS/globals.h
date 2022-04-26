@@ -13,13 +13,13 @@
 #define ALL_MESSAGE_DELIMITERS "|:"
 #define MESSAGE_DELIMITER "|" // The common delimiter in messages to separete values
 #define MESSAGE_ACCEPT ":"
-#define TRAITORS 1 // Controls whether bad processes will be ON (simulated)
+#define TRAITORS 0 // Controls whether bad processes will be ON (simulated)
 
 /*
  Used to control how big the coeficient of the polyonims can go.
  Keep it low so its easy to follow
 */
-#define MAX_COEFICIENT 100
+#define MAX_COEFICIENT 2000
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846

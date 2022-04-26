@@ -192,6 +192,7 @@ void init(void *context,
 	//maximume number of messages. if all processors are good
 	//as of now this is the max
 	maxNumberOfMessages = (numOfNodes+(numOfNodes*3)*numOfNodes+2*numOfNodes)*numOfNodes+(numOfNodes*numOfNodes*numOfNodes)+(numOfNodes*numOfNodes)*4 +(numOfNodes*2) - 1;
+	//maxNumberOfMessages = 2;
 
 	/* 
 		max characters in message because dealer sends out numOfNodes doubles +1 for the root poly

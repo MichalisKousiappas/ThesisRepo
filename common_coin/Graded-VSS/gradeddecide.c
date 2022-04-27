@@ -53,6 +53,9 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
+		if (TimedOut[distributor] == 1)
+			continue;
+
 		GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id], QBits);
 		GradeCast(reqServer, distributor, QBits, outArray, GradedCastMessage);
 
@@ -356,8 +359,7 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 			//TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
 			//			i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 
-			// limit the precision check to 3 bits instead of 4. This is because the calculations can't be this precise
-			if ( fabs(Pij - TplusQmultiS) <= 0.001)
+			if ( fabs(Pij - TplusQmultiS) <= PRECISSION)
 			{
 				counter2++;
 			}
@@ -370,7 +372,7 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 		#ifdef DEBUG
 			printf("\n");
 		#endif
-		*/		
+		*/
 	}
 	res = ((counter1 == counter2) && (counter1 != 0));
 

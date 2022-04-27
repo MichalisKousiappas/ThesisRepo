@@ -4,6 +4,9 @@
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor);
 void GetFromDistributor(struct servers reqServer[], int distributor, char result[]);
 
+int oldTimeoutValue;
+int newTimeoutValue;
+
 /*
    Graded-Cast tally validation
  */
@@ -44,12 +47,17 @@ void GetFromDistributor(struct servers reqServer[], int distributor, char result
 
 	sprintf(sendBuffer, "%d %s", proc_id, "OK");
 
-	zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0);
-	TraceDebug("Received secret from distributor: [%s]\n", result);
+	if (zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0) == -1)
+	{
+		TimeoutDetected(__FUNCTION__, distributor);
+		return;
+	}
+	else
+		TraceDebug("Received secret from distributor: [%s]\n", result);
 
 	TraceDebug("Sending data as client[%d] to distributor[%d]: [%s]\n", proc_id, distributor, sendBuffer);
-	zmq_send(reqServer[distributor].value, sendBuffer, strlen(sendBuffer), 0);
-
+	zmq_send(reqServer[distributor].value, sendBuffer, strlen(sendBuffer), 1);
+	
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
@@ -68,21 +76,27 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 	// "Secret" binary string
 	sprintf(sendBuffer, "%s", secret);
 
+	zmq_setsockopt(reqServer[proc_id].value, ZMQ_RCVTIMEO, &newTimeoutValue, sizeof(int));
+
 	messages++;
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if (i == proc_id) continue;
+		if ((i == proc_id) || TimedOut[i] == 1) continue;
 
 		TraceDebug("Sending data as distributor to [%d]: [%s]\n", i, sendBuffer);
-		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
+		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 1);
 
-		zmq_recv(reqServer[distributor].value, recvBuffer, sizeof(recvBuffer) - 1, 0);
-		TraceDebug("Received confirmation as distributor[%d]: [%s]\n", distributor, recvBuffer);
+		if (zmq_recv(reqServer[distributor].value, recvBuffer, sizeof(recvBuffer) - 1, 0) == -1)
+			TraceInfo("%s*No response from [%d]\n", __FUNCTION__, i);
+		else
+			TraceDebug("Received confirmation as distributor[%d]: [%s]\n", distributor, recvBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;
 	}
+
+	zmq_setsockopt(reqServer[proc_id].value, ZMQ_RCVTIMEO, &oldTimeoutValue, sizeof(int));
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
@@ -104,7 +118,9 @@ void GradeCastPhaseA(struct servers reqServer[], int distributor, const char *me
 	else
 	{
 		GetFromDistributor(reqServer, distributor, result);
-		WaitForDealerSignal(reqServer);
+
+		if (TimedOut[distributor] == 0)
+			WaitForDealerSignal(reqServer);
 	}
 
 	TraceDebug("%s*exit\n", __FUNCTION__);
@@ -124,6 +140,8 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
+		if (TimedOut[i] == 1) continue;
+
 		memset(StringZ, 0, sizeof(StringZ));
 		if (proc_id == i)
 		{
@@ -139,7 +157,9 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 			{
 				messagesCount++;
 			}
-			WaitForDealerSignal(reqServer);
+
+			if (TimedOut[i] == 0)
+				WaitForDealerSignal(reqServer);
 		}
 	}
 
@@ -161,6 +181,8 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
+		if (TimedOut[i] == 1) continue;
+
 		memset(StringZ, 0, sizeof(StringZ));
 		if (proc_id == i)
 		{
@@ -176,7 +198,9 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 			{
 				tally++;
 			}
-			WaitForDealerSignal(reqServer);
+
+			if (TimedOut[i] == 0)
+				WaitForDealerSignal(reqServer);
 		}
 	}
 
@@ -191,6 +215,8 @@ void GradeCast(struct servers reqServer[], int distributor, const char *message,
 {
 	int tally = 0;
 	int messagesCount = 0;
+	oldTimeoutValue = TIMEOUT_MULTIPLIER * numOfNodes;
+	newTimeoutValue = oldTimeoutValue/numOfNodes;
 
 	TraceDebug("%s*enter\n", __FUNCTION__);
 

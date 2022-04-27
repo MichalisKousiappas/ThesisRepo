@@ -30,8 +30,14 @@ void SimpleGradedRecover(struct servers reqServer[],
 	// all processes take turn and distribute their "secret"
 	for (dealer = 0; dealer < numOfNodes; dealer++)
 	{
+		if (TimedOut[dealer] == 1)
+			continue;
+
 		for (int distributor = 0; distributor < numOfNodes; distributor++)
 		{
+			if (TimedOut[distributor] == 1)
+				continue;
+
 			BuildPiece(distributor, Secret_hj, BuildedPiece);
 			GradeCastPhaseA(reqServer, distributor, BuildedPiece, GradedCastMessage);
 
@@ -50,7 +56,7 @@ void SimpleGradedRecover(struct servers reqServer[],
 			#endif
 			memset(BuildedPiece, 0, sizeof(BuildedPiece));
 			memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
-		}		
+		}
 	}
 
 	for (dealer = 0; dealer < numOfNodes; dealer++)

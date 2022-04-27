@@ -38,6 +38,21 @@ void Traitor(char *sendBuffer)
 }
 
 /**
+ * Simulate random death of nodes
+*/
+void RandomDeath()
+{
+	if (DEAD_NODES && (proc_id != 0) && (proc_id != dealer) && (proc_id%3 == 0))
+	{
+		if (((rand() + proc_id) % 10) == 0)
+		{
+			printf("Im die, thankyu fo eva\n");
+			exit(-1);
+		}
+	}
+}
+
+/**
   Send the same message to all other nodes -- Doesn't wait for an answer
  */
 void Distribute(struct servers reqServer[], const char *commonString)
@@ -56,10 +71,10 @@ void Distribute(struct servers reqServer[], const char *commonString)
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if (i == proc_id) continue;
+		if ((i == proc_id) || TimedOut[i] == 1) continue;
 
 		//TraceDebug("Sending data as client[%d] to [%d]: [%s]\n", proc_id, i, sendBuffer);
-		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
+		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 1);
 
 		if (memcmp(commonString, "OK", 2) && commonString[0])
 			messages++;
@@ -112,4 +127,13 @@ void parallel_array_merge_sort(int i, int j, double a[], double aux[], double b[
 		a[k] = aux[k];
 		b[k] = bux[k];
 	}
+}
+
+void TimeoutDetected(const char *Who, int node)
+{
+	if (TimedOut[node] == 1)
+		return;
+
+	TraceInfo("%s*Timedout on [%d]\n", Who, node);
+	TimedOut[node] = 1;
 }

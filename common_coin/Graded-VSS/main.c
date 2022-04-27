@@ -22,6 +22,7 @@ int PrimeCongruent;
 double RootOfUnity;
 char TimeVar[25] = {0};
 int CONFIDENCE_PARAM;
+int *TimedOut;
 
 int main (int argc,char *argv[])
 {
@@ -47,8 +48,13 @@ int main (int argc,char *argv[])
 	//Initialize variables
 	init(context, commonChannel, serversIP, polynomials, polyEvals, RootPolynomial, EvaluatedRootPoly, RootPolynomial, Secret_hj);
 
+	RandomDeath();
+
 	for (dealer = 0; dealer < numOfNodes; dealer++)
 	{
+		if (TimedOut[dealer] == 1)
+			continue;
+
 		if (IsDealer)
 		{
 			TraceDebug("Generating polynomials...\n");
@@ -63,21 +69,29 @@ int main (int argc,char *argv[])
 		// Begin the Graded-Share protocol
 		secret = SimpleGradedShare(commonChannel, polyEvals, EvaluatedRootPoly);
 		ParseSecret(secret, polyEvals, EvaluatedRootPoly);
+		
+		RandomDeath();
 
 		// Begin the Graded-Decide protocol
 		DecideOutput[proc_id][dealer] = SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial, Secret_hj);
 	}
 
+	RandomDeath();
+	
 	// Begin Vote protocol
 	Vote(commonChannel, DecideOutput, candidate);
 
-	#ifdef DEBUG
-		for(int i = 0; i < numOfNodes; i++)
-			printf("candidate[%d]: [%d]\n", i, candidate[i].code);
-	#endif
+	RandomDeath();
+
+	for(int i = 0; i < numOfNodes; i++)
+		TraceDebug("candidate[%d]: [%d]\n", i, candidate[i].code);
+
+	RandomDeath();
 
 	// Begin Graded-Recover phase
 	SimpleGradedRecover(commonChannel, Secret_hj, candidate, &tally);
+
+	RandomDeath();
 /*
 	#ifdef DEBUG
 		for(int i = 0; i < numOfNodes; i++)

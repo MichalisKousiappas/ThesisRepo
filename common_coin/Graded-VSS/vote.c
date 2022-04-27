@@ -25,6 +25,9 @@ void Vote(struct servers reqServer[],
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
 	{
+		if (TimedOut[distributor] == 1)
+			continue;
+
 		GetAcceptList(distributor,DecideOutput, List);
 		GradeCast(reqServer, distributor, List, candidate, GradedCastMessage);
 

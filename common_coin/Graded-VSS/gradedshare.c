@@ -67,29 +67,38 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 {
 	char sendBuffer[StringSecreteSize + 1];
 	char recvBuffer[56];
+	int oldTimeoutValue = TIMEOUT_MULTIPLIER * numOfNodes;
+	int newTimeoutValue = TIMEOUT_MULTIPLIER;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
 
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
+	zmq_setsockopt(reqServer[proc_id].value, ZMQ_RCVTIMEO, &newTimeoutValue, sizeof(int));
+
 	//Distribute your message to all other nodes
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if (i == proc_id) continue;
+		if ((i == proc_id) || TimedOut[i] == 1)
+			continue;
 
 		// Build secret for each node
 		sprintf(sendBuffer, "%s", BuildSecretString(i, polyEvals, EvaluatedRootPoly));
 		
-		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 0);
+		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 1);
 		TraceDebug("Send data as dealer to [%d]: [%s]\n", i, sendBuffer);
 
-		zmq_recv(reqServer[dealer].value, recvBuffer, sizeof(recvBuffer) - 1, 0);
-		TraceDebug("Received data as dealer: [%s]\n", recvBuffer);
+		if (zmq_recv(reqServer[dealer].value, recvBuffer, sizeof(recvBuffer) - 1, 0) == -1)
+			TraceInfo("No response from: [%d]\n", i);
+		else
+			TraceDebug("Received data as dealer: [%s]\n", recvBuffer);
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;
 	}
+
+	zmq_setsockopt(reqServer[proc_id].value, ZMQ_RCVTIMEO, &oldTimeoutValue, sizeof(int));
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
@@ -108,8 +117,14 @@ char *GetFromDealer(struct servers reqServer[])
 
 	sprintf(sendBuffer, "%d %s", proc_id, "OK");
 
-	zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0);
-	TraceDebug("Received secret from dealer: [%s]\n", result);
+	if (zmq_recv(reqServer[proc_id].value, result, StringSecreteSize, 0) == -1)
+	{
+		TimeoutDetected(__FUNCTION__, dealer);
+		memset(result, 0, sizeof(StringSecreteSize));
+		return result;
+	}
+	else
+		TraceDebug("Received secret from dealer: [%s]\n", result);
 
 	TraceDebug("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
 	zmq_send(reqServer[dealer].value, sendBuffer, strlen(sendBuffer), 0);

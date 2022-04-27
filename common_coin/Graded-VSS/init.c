@@ -53,6 +53,9 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
+	int timeoutValueRCV = TIMEOUT_MULTIPLIER * numOfNodes;
+	int lingerTime = TIMEOUT_MULTIPLIER * numOfNodes;
+
 	//Create connection to communicate with other processes
 	for(int i = 0; i < numOfNodes; i++)
 	{
@@ -60,6 +63,7 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 
 		reqServer[i].value = zmq_socket(context, ZMQ_PUSH);
 		reqServer[i].type = ZMQ_PUSH;
+		zmq_setsockopt(reqServer[i].value, ZMQ_LINGER, &lingerTime, sizeof(int));
 		zmq_connect(reqServer[i].value, serversIP[i]);
 	}
 
@@ -67,6 +71,8 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 	TraceDebug("%s*%d: %s\n", __FUNCTION__, proc_id, serversIP[proc_id]);
 	reqServer[proc_id].value = zmq_socket(context, ZMQ_PULL);
 	reqServer[proc_id].type = ZMQ_PULL;
+	zmq_setsockopt(reqServer[proc_id].value, ZMQ_RCVTIMEO, &timeoutValueRCV, sizeof(int));
+	zmq_setsockopt(reqServer[proc_id].value, ZMQ_LINGER, &lingerTime, sizeof(int));
 	int rc = zmq_bind(reqServer[proc_id].value, serversIP[proc_id]);
 	assert(rc == 0);
 
@@ -181,6 +187,7 @@ void init(void *context,
 
 	// Cheap way to make global array with variable length
 	outArray = calloc(numOfNodes, sizeof(struct output));
+	TimedOut = calloc(numOfNodes, sizeof(int));
 
 	//maximume number of messages. if all processors are good
 	//as of now this is the max
@@ -192,7 +199,8 @@ void init(void *context,
 		and finally, sizeof(double) since we send out doubles +1 for the dot (.) that is added as extra for the string 
 		and +1 for the delimiter character which is used for separate the values
 	*/
-	StringSecreteSize = (numOfNodes+1) * CONFIDENCE_PARAM * (sizeof(double)+3);
+	int Calculation = (MAX_COEFICIENT/100000) < 3 ? 3 : (MAX_COEFICIENT/100000);
+	StringSecreteSize = (numOfNodes+1) * CONFIDENCE_PARAM * (sizeof(double)+Calculation);
 
 	PrimeCongruent = getPrimeCongruent();
 

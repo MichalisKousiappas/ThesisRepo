@@ -38,7 +38,6 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	char GradedCastMessage[StringSecreteSize];
 	char QBits[StringSecreteSize];
 	char BuildedMessage[StringSecreteSize];
-	char DecisionMessage[10] = {0};
 	struct output DealersOutput;
 	struct output accept;
 
@@ -49,6 +48,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	memset(QBits, 0, sizeof(QBits));
 	memset(BuildedMessage, 0, sizeof(BuildedMessage));
 	memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
+	memset(&accept, 0, sizeof(accept));
 
 	// all processes take turn and distribute their "secret"
 	for (int distributor = 0; distributor < numOfNodes; distributor++)
@@ -59,7 +59,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 		GetQueryBits(distributor, polyEvals, QueryBitsArray[proc_id], QBits);
 		GradeCast(reqServer, distributor, QBits, outArray, GradedCastMessage);
 
-		if (outArray[distributor].code > 0)
+		if (outArray[distributor].code > 0 && TimedOut[distributor] == 0)
 		{
 			// Parse QueryBits, if message seems invalid then reject the sender
 			if (ParseQueryBitsMessage(GradedCastMessage, QueryBitsArray))
@@ -68,6 +68,12 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 				outArray[distributor].value = 0;
 			}
 		}
+		else
+		{
+			TraceInfo("dude what the fuck ?? [%d] [%d]\n", distributor, dealer);
+			TraceInfo("qbits wwere supposed to be [%s]\n", QBits);
+		}
+
 		#ifdef DEBUG
 			printf("----------------------------------------\n");
 		#endif
@@ -93,7 +99,7 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 
 		if (outArray[dealer].code > 0 && !IsDealer)
 			ParseMessage(procNum, GradedCastMessage, NewPolynomials);
-		
+
 		memset(BuildedMessage, 0, sizeof(BuildedMessage));
 		memset(GradedCastMessage, 0, sizeof(GradedCastMessage));
 	}
@@ -102,11 +108,11 @@ struct output SimpleGradedDecide(struct servers reqServer[],
 	outArray[dealer] = DealersOutput;
 
 	if (CheckForGoodPiece(NewPolynomials, QueryBitsArray, polyEvals, EvaluatedRootPoly, RootPolynomial))
-		sprintf(DecisionMessage, "GoodPiece");
+		GoodPieceMessages = CountSameMessage(reqServer, "GoodPiece", 1);
 	else
-		memset(DecisionMessage, 0, sizeof(DecisionMessage));
+		GoodPieceMessages = CountSameMessage(reqServer, "GoodPiece", 0);
 
-	GoodPieceMessages = CountSameMessage(reqServer, DecisionMessage);
+	//GoodPieceMessages = CountSameMessage(reqServer, "GoodPiece");
 
 	if (GoodPieceMessages < (numOfNodes - badPlayers))
 		PassableMessages = CountSameMessageAgain(reqServer, "Passable", 0);
@@ -341,8 +347,13 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 
 	for (int i = 0; i < numOfNodes; i++)
 	{
-		if ((outArray[i].code == 0) && (i != proc_id))
+		if (((outArray[i].code == 0) && (i != proc_id)) || TimedOut[i] == 1)
+		{
+			if (outArray[i].code == 0 && TimedOut[i] == 0)
+				TraceInfo("Wtf dude [%d]\n", i);
+			//TraceInfo("outArray[%s] TimedOut[%s]\n", outArray[i].code ? "No" : "Yes", TimedOut[i] ? "Yes" : "No");
 			continue;
+		}
 
 		// Enable in case you want excesive debugging.
 		/*
@@ -356,8 +367,8 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 
 			Pij = gsl_poly_eval(NewPolynomials[i][j], badPlayers, pow(RootOfUnity, power));
 			TplusQmultiS = polyEvals[proc_id][i][j] + QueryBitsArray[i][j] * EvaluatedRootPoly[proc_id];
-			//TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
-			//			i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
+			TraceDebug("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
+						i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 
 			if ( fabs(Pij - TplusQmultiS) <= PRECISSION)
 			{
@@ -365,9 +376,12 @@ int CheckForGoodPiece(double NewPolynomials[][CONFIDENCE_PARAM][badPlayers],
 			}
 			else
 			{
-				TraceDebug("Error here\n");
+				TraceInfo("Error here\n");
+				TraceInfo("i:[%d] j:[%d] Pij:[%f] TplusQmulitS:[%f] Qbit:[%f] RootPoly:[%f]\n",
+						i, j, Pij, TplusQmultiS, QueryBitsArray[i][j], EvaluatedRootPoly[proc_id]);
 			}
 		}
+
 		/*
 		#ifdef DEBUG
 			printf("\n");

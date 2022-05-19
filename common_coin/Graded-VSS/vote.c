@@ -127,18 +127,22 @@ int ParseAcceptList(char *message, struct output DecideOutput[][numOfNodes])
 	{
 		if (ParsedMessage[i].code == 2)
 			counter++;
-		
+
 		DecideOutput[Sender][i] = ParsedMessage[i];
+		//printf("DecideOutput[%d][%d]: [%d]\n", Sender, i, ParsedMessage[i].code);
 	}
 
 	/*
 		Check if the number of accepted nodes are more or equal to (n-t).
 		Check if your code matches their code of you.
 	*/
-	if (!((counter >= (numOfNodes - badPlayers)) && (fabs(ParsedMessage[proc_id].code - DecideOutput[proc_id][Sender].code) < 2)))
-		Result = 1;
-	else
+	if ((counter >= (numOfNodes - badPlayers)) && (ParsedMessage[proc_id].code || DecideOutput[proc_id][Sender].code))
 		Result = 0;
+	else
+	{
+		Result = 1;
+		TraceInfo("sender[%d] counter[%d] ParsedMessage[%d] DecideOutput[%d]\n", Sender, counter, ParsedMessage[proc_id].code, DecideOutput[proc_id][Sender].code);
+	}
 
 	TraceDebug("%s*counter[%d][%d]\n", __FUNCTION__, counter, Result);
 	return Result;

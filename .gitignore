@@ -7,3 +7,5 @@ result*.txt
 testing.sh
 a.out
 what.c
+common_coin/Graded-VSS/res
+common_coin/Graded-VSS/time_results

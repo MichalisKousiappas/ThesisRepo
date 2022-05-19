@@ -26,7 +26,11 @@ char *SimpleGradedShare(struct servers syncServer[], double polyEvals[][numOfNod
 	else
 	{
 		result = GetFromDealer(syncServer);
-		WaitForDealerSignal(syncServer);
+		
+		if (TimedOut[dealer] == 0)
+			WaitForDealerSignal(syncServer);
+		else
+			sleep(0.1 * numOfNodes);
 	}
 
 	TraceDebug("%s*exit\n", __FUNCTION__);
@@ -67,7 +71,7 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 {
 	char sendBuffer[StringSecreteSize + 1];
 	char recvBuffer[56];
-	int oldTimeoutValue = TIMEOUT_MULTIPLIER * numOfNodes;
+	int oldTimeoutValue = TIMEOUT_MULTIPLIER*numOfNodes*3;
 	int newTimeoutValue = TIMEOUT_MULTIPLIER;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
@@ -90,7 +94,7 @@ void DealerDistributeSecret(struct servers reqServer[], double polyEvals[][numOf
 		TraceDebug("Send data as dealer to [%d]: [%s]\n", i, sendBuffer);
 
 		if (zmq_recv(reqServer[dealer].value, recvBuffer, sizeof(recvBuffer) - 1, 0) == -1)
-			TraceInfo("No response from: [%d]\n", i);
+			TraceDebug("No response from: [%d]\n", i);
 		else
 			TraceDebug("Received data as dealer: [%s]\n", recvBuffer);
 
@@ -124,7 +128,9 @@ char *GetFromDealer(struct servers reqServer[])
 		return result;
 	}
 	else
+	{
 		TraceDebug("Received secret from dealer: [%s]\n", result);
+	}
 
 	TraceDebug("Sending data as client[%d] to dealer: [%s]\n", proc_id, sendBuffer);
 	zmq_send(reqServer[dealer].value, sendBuffer, strlen(sendBuffer), 0);
@@ -138,10 +144,6 @@ char *GetFromDealer(struct servers reqServer[])
  */
 int ParseSecret(char *secret, double polyEvals[][numOfNodes][CONFIDENCE_PARAM], double EvaluatedRootPoly[])
 {
-	// Dealer process does not need to parse the secret
-	if (IsDealer)
-		return 0;
-
 	TraceInfo("%s*enter\n", __FUNCTION__);
 
 	if (secret[strlen(secret) - 1] != '|')

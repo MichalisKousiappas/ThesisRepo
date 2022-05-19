@@ -4,9 +4,6 @@
 void DistributorDistribute(struct servers reqServer[], const char *secret, int distributor);
 void GetFromDistributor(struct servers reqServer[], int distributor, char result[]);
 
-int oldTimeoutValue;
-int newTimeoutValue;
-
 /*
    Graded-Cast tally validation
  */
@@ -53,11 +50,15 @@ void GetFromDistributor(struct servers reqServer[], int distributor, char result
 		return;
 	}
 	else
+	{
 		TraceDebug("Received secret from distributor: [%s]\n", result);
+		if (!result[0])
+			TraceInfo("why empty??\n");
+	}
 
 	TraceDebug("Sending data as client[%d] to distributor[%d]: [%s]\n", proc_id, distributor, sendBuffer);
 	zmq_send(reqServer[distributor].value, sendBuffer, strlen(sendBuffer), 1);
-	
+
 	TraceDebug("%s*exit\n", __FUNCTION__);
 }
 
@@ -68,6 +69,8 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 {
 	char sendBuffer[StringSecreteSize + 1];
 	char recvBuffer[8];
+	int oldTimeoutValue = TIMEOUT_MULTIPLIER*numOfNodes*3;
+	int newTimeoutValue = TIMEOUT_MULTIPLIER;
 
 	memset(sendBuffer, 0, sizeof(sendBuffer));
 	memset(recvBuffer, 0, sizeof(recvBuffer));
@@ -88,9 +91,13 @@ void DistributorDistribute(struct servers reqServer[], const char *secret, int d
 		zmq_send(reqServer[i].value, sendBuffer, StringSecreteSize, 1);
 
 		if (zmq_recv(reqServer[distributor].value, recvBuffer, sizeof(recvBuffer) - 1, 0) == -1)
+		{
 			TraceInfo("%s*No response from [%d]\n", __FUNCTION__, i);
+		}
 		else
+		{
 			TraceDebug("Received confirmation as distributor[%d]: [%s]\n", distributor, recvBuffer);
+		}
 
 		memset(recvBuffer, 0, sizeof(recvBuffer));
 		messages++;
@@ -120,7 +127,11 @@ void GradeCastPhaseA(struct servers reqServer[], int distributor, const char *me
 		GetFromDistributor(reqServer, distributor, result);
 
 		if (TimedOut[distributor] == 0)
+		{
 			WaitForDealerSignal(reqServer);
+		}
+		else
+			sleep(0.1 * TIMEOUT_MULTIPLIER);
 	}
 
 	TraceDebug("%s*exit\n", __FUNCTION__);
@@ -131,7 +142,7 @@ void GradeCastPhaseA(struct servers reqServer[], int distributor, const char *me
  * All processes take turn and send their message to all other nodes.
  * if its not their turn to send they wait for the distributor processes to send.
 */
-int CountSameMessage(struct servers reqServer[], const char *message)
+int CountSameMessage(struct servers reqServer[], const char *message, int check)
 {
 	int messagesCount = 1;
 	char StringZ[StringSecreteSize + 1];
@@ -145,7 +156,7 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 		memset(StringZ, 0, sizeof(StringZ));
 		if (proc_id == i)
 		{
-			DistributorDistribute(reqServer, message, i);
+			DistributorDistribute(reqServer, check ? message : "", i);
 			TraceDebug("%s*Process:[%d] finished. Sending OK signal\n", __FUNCTION__, i);
 			Distribute(reqServer, "OK");
 		}
@@ -159,7 +170,11 @@ int CountSameMessage(struct servers reqServer[], const char *message)
 			}
 
 			if (TimedOut[i] == 0)
+			{
 				WaitForDealerSignal(reqServer);
+			}
+			else
+				sleep(0.1 * TIMEOUT_MULTIPLIER);
 		}
 	}
 
@@ -200,7 +215,11 @@ int CountSameMessageAgain(struct servers reqServer[], const char *message, int c
 			}
 
 			if (TimedOut[i] == 0)
+			{
 				WaitForDealerSignal(reqServer);
+			}
+			else
+				sleep(0.1 * TIMEOUT_MULTIPLIER);
 		}
 	}
 
@@ -215,8 +234,6 @@ void GradeCast(struct servers reqServer[], int distributor, const char *message,
 {
 	int tally = 0;
 	int messagesCount = 0;
-	oldTimeoutValue = TIMEOUT_MULTIPLIER * numOfNodes;
-	newTimeoutValue = oldTimeoutValue/numOfNodes;
 
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
@@ -224,7 +241,7 @@ void GradeCast(struct servers reqServer[], int distributor, const char *message,
 	GradeCastPhaseA(reqServer, distributor, message, result);
 
 	// Phase B
-	messagesCount = CountSameMessage(reqServer, result);
+	messagesCount = CountSameMessage(reqServer, result, 1);
 
 	Traitor(result);
 
@@ -237,4 +254,3 @@ void GradeCast(struct servers reqServer[], int distributor, const char *message,
 	array[distributor] = ValidateTally(tally);
 	TraceDebug("%s*exit*distributor[%d] output:code[%d] value:[%d]\n", __FUNCTION__, distributor, array[distributor].code, array[distributor].value);
 }
-

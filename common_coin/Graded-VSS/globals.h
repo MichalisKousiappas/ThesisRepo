@@ -25,7 +25,7 @@
  Biggest value that works with PRECISSION as 0.1
  #define MAX_COEFICIENT (INT_MAX/10000)
 */
-#define MAX_COEFICIENT 2000
+#define MAX_COEFICIENT 100
 
 // limit the precision check to 3 bits instead of 4. This is because the calculations can't be this precise
 #define PRECISSION 0.001
@@ -66,7 +66,7 @@ extern int *TimedOut;
 #ifdef DEBUG
 #define TraceDebug(fmt, ...) do{ GetTime(TimeVar); fprintf(stdout,"DEBUG " "%s %d " fmt, TimeVar, getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)
 #else
-#define TraceDebug(fmt, ...) ((void)0)
+#define TraceDebug(fmt, ...) do{((void)0);}while(0)
 #endif
 //use this bad boy instaed of printf for better formatting. fflush is to force the output in case we write to file through bash
 #define TraceInfo(fmt, ...)	do{ GetTime(TimeVar); fprintf(stdout,"INFO  " "%s %d " fmt, TimeVar, getpid(), ##__VA_ARGS__); fflush(stdout);}while(0)

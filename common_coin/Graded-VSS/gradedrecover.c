@@ -142,7 +142,7 @@ int CalculatePolynomial(double Secret_hj[][numOfNodes], struct output candidate[
 	int counter = 0;
 	int status;
 
-	if (candidate[dealer].code == 0)
+	if (candidate[dealer].code == 0 || TimedOut[dealer] == 1)
 	{
 		TraceInfo("no need to calculate for process [%d]\n", dealer);
 		finale[dealer] = 0;

@@ -10,6 +10,16 @@
 #include "gradedrecover.h"
 #include "vote.h"
 
+# define timersub(a, b, result)\
+  do {\
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;\
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;\
+    if ((result)->tv_usec < 0) {\
+      --(result)->tv_sec;\
+      (result)->tv_usec += 1000000;\
+    }\
+  } while (0)
+
 int numOfNodes;
 int dealer;
 int proc_id;
@@ -42,6 +52,8 @@ int main (int argc,char *argv[])
 	struct output DecideOutput[numOfNodes][numOfNodes]; //rows are the process, columns are the dealer
 	int tally;
 
+	struct timeval tval_before, tval_after, tval_result;
+
 	ValidateInput(argc);
 	void *context = zmq_ctx_new();
 
@@ -55,6 +67,9 @@ int main (int argc,char *argv[])
 		if (TimedOut[dealer] == 1)
 			continue;
 
+		if (dealer == 1)
+			gettimeofday(&tval_before, NULL);
+
 		if (IsDealer)
 		{
 			TraceDebug("Generating polynomials...\n");
@@ -66,18 +81,30 @@ int main (int argc,char *argv[])
 			TraceDebug("Done\n");
 		}
 
+		RandomDeath();
+
 		// Begin the Graded-Share protocol
 		secret = SimpleGradedShare(commonChannel, polyEvals, EvaluatedRootPoly);
 		ParseSecret(secret, polyEvals, EvaluatedRootPoly);
-		
+
 		RandomDeath();
+
+		if (TimedOut[dealer] == 1)
+			continue;
 
 		// Begin the Graded-Decide protocol
 		DecideOutput[proc_id][dealer] = SimpleGradedDecide(commonChannel, polyEvals, EvaluatedRootPoly, polynomials, RootPolynomial, Secret_hj);
+		
+		if (dealer == 1)
+		{
+			gettimeofday(&tval_after, NULL);
+			timersub(&tval_after, &tval_before, &tval_result);
+			printf("Time elapsed: %ld.%06ld\n", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+		}
 	}
 
 	RandomDeath();
-	
+
 	// Begin Vote protocol
 	Vote(commonChannel, DecideOutput, candidate);
 
@@ -91,7 +118,6 @@ int main (int argc,char *argv[])
 	// Begin Graded-Recover phase
 	SimpleGradedRecover(commonChannel, Secret_hj, candidate, &tally);
 
-	RandomDeath();
 /*
 	#ifdef DEBUG
 		for(int i = 0; i < numOfNodes; i++)

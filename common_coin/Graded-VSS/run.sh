@@ -5,14 +5,16 @@
 
 echo
 
-numofnodes=3
+numofnodes=40
 
 # kill any processes that is still alive from previous run
-pidof Graded-VSS.o && killall Graded-VSS.o && sleep 1
+#pidof Graded-VSS.o && killall Graded-VSS.o && sleep 1
 
 # clean recompile to delete traces as well
 #make clean
 #make || exit
+T="$(date +%s%N)"
+
 
 # run the processes numofnodes time and redirect output to file
 for i in $(seq 0 $((numofnodes-1))); do ./Graded-VSS.o $i $numofnodes > result$i.dmp & done
@@ -20,28 +22,21 @@ for i in $(seq 0 $((numofnodes-1))); do ./Graded-VSS.o $i $numofnodes > result$i
 # wait for them to finish
 wait
 
+# Time interval in nanoseconds
+T="$(($(date +%s%N)-T))"
+# Seconds
+S="$((T/1000000000))"
+# Milliseconds
+M="$((T/1000000))"
+
+printf "Pretty format: %02d:%02d:%02d.%03d\n" "$((S/3600%24))" "$((S/60%60))" "$((S%60))" "${M}"
+
 grep -ohi "SimpleGradedRecover\*exit\[.*\]" result* --color=auto | sort | uniq
 grep -ohi "tally is \[.*\]" result* --color=auto | sort | uniq
 
-spd-say -i -40 done
-sleep 1
+#spd-say -i -40 done
+
+
+sleep 0.5
+
 exit
-# Check processes output
-echo "Parameters:"
-
-echo "number of nodes: $numofnodes"
-
-echo -n "GoodPieces: "
-grep -irn "checkforgoodpiece\*exit\[1\]" result* --color=auto | wc -l
-
-grep -oi "Rootofunity\[.*\]" result0.dmp --color=auto
-
-grep -m 1 -A 5 -i "Generating polynomials\.\." result* | grep -A 1 -i "Root polynomial" --color=auto
-grep -ohi "finale:\[.*\]\|I can't do this\|Interpolation cannot be performed" result* --color=auto | sort | uniq
-echo -n "number of processes that got it: "
-grep -i "finale" result* | uniq | wc -l
-
-echo -e "tally's were: "
-
-# tell me when you are done
-spd-say -i -40 done

@@ -53,8 +53,8 @@ void PrepareConnections(void *context, struct servers reqServer[], char serversI
 {
 	TraceDebug("%s*enter\n", __FUNCTION__);
 
-	int timeoutValueRCV = TIMEOUT_MULTIPLIER * numOfNodes;
-	int lingerTime = TIMEOUT_MULTIPLIER * numOfNodes;
+	int timeoutValueRCV = TIMEOUT_MULTIPLIER*numOfNodes*3;
+	int lingerTime = TIMEOUT_MULTIPLIER * numOfNodes * 2;
 
 	//Create connection to communicate with other processes
 	for(int i = 0; i < numOfNodes; i++)
@@ -159,7 +159,7 @@ void init(void *context,
 	char filename[35] = {0};
 
 	// Fill serversIP
-	memcpy(filename, "hosts.txt", sizeof(filename));
+	memcpy(filename, "hosts.txt", sizeof("hosts.txt"));
 	ReadIPFromFile(serversIP, filename);
 
 	//connect to all other nodes
@@ -193,13 +193,13 @@ void init(void *context,
 	//as of now this is the max
 	maxNumberOfMessages = (numOfNodes+(numOfNodes*3)*numOfNodes+2*numOfNodes)*numOfNodes+(numOfNodes*numOfNodes*numOfNodes)+(numOfNodes*numOfNodes)*4 +(numOfNodes*2) - 1;
 
-	/* 
+	/*
 		max characters in message because dealer sends out numOfNodes doubles +1 for the root poly
 		multiplied by the CONFIDENCE_PARAM which is the number of doubles per numOfNodes
 		and finally, sizeof(double) since we send out doubles +1 for the dot (.) that is added as extra for the string 
 		and +1 for the delimiter character which is used for separate the values
 	*/
-	int Calculation = (MAX_COEFICIENT/100000) < 3 ? 3 : (MAX_COEFICIENT/100000);
+	int Calculation = (MAX_COEFICIENT/100000) < 4 ? 4 : (MAX_COEFICIENT/100000);
 	StringSecreteSize = (numOfNodes+1) * CONFIDENCE_PARAM * (sizeof(double)+Calculation);
 
 	PrimeCongruent = getPrimeCongruent();
@@ -216,6 +216,6 @@ void init(void *context,
 	if (RootOfUnity > 0)
 		RootOfUnity = (RootOfUnity*-1);
 
-	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f] ConfidenceParam[%d]\n",
-			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity, CONFIDENCE_PARAM);
+	TraceInfo("proc_id:[%d] numOfNodes:[%d] dealer:[%d] badPlayers:[%d]\n\t\t\t\t\t\t\t\t\tMaxMessages:[%d] secreteSize:[%d]\n\t\t\t\t\t\t\t\t\tprimeCongruent[%d] RootOfUnity[%f] ConfidenceParam[%d] Timeout[%d]\n",
+			   proc_id, numOfNodes, dealer, badPlayers, maxNumberOfMessages, StringSecreteSize, PrimeCongruent, RootOfUnity, CONFIDENCE_PARAM, TIMEOUT_MULTIPLIER*numOfNodes*3);
 }
